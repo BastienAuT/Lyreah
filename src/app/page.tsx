@@ -69,10 +69,10 @@ export default function Home() {
               immersive, accompagnée d’ambiances sonores pensées pour chaque univers.
             </p>
             <div className="hero-actions">
-              <a className="button button--primary" href="#catalogue">
+              <Link className="button button--primary" href="/catalogue">
                 Explorer la bibliothèque
                 <span aria-hidden="true">→</span>
-              </a>
+              </Link>
               <a className="text-link" href="#experience">
                 Découvrir l’expérience
               </a>
@@ -148,9 +148,9 @@ export default function Home() {
             <p className="eyebrow">La sélection Lyreah</p>
             <h2>Des classiques à vivre autrement</h2>
           </div>
-          <a className="text-link" href="#tous-les-livres">
+          <Link className="text-link" href="/catalogue">
             Voir tous les livres <span aria-hidden="true">→</span>
-          </a>
+          </Link>
         </div>
 
         <div className="book-grid">

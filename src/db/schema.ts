@@ -26,6 +26,11 @@ export const libraryStatus = pgEnum("library_status", [
 
 export const userRole = pgEnum("user_role", ["reader", "admin"]);
 
+export const bookRightsStatus = pgEnum("book_rights_status", [
+  "public_domain",
+  "licensed",
+]);
+
 // Neon Auth owns identities and sessions in the managed `neon_auth` schema.
 // This table only stores Lyreah-specific user data and shares the auth user id.
 export const profiles = pgTable(
@@ -71,6 +76,10 @@ export const books = pgTable(
     synopsis: text("synopsis").notNull(),
     language: text("language").default("fr").notNull(),
     publicationYear: integer("publication_year"),
+    rightsStatus: bookRightsStatus("rights_status").notNull(),
+    rightsStatement: text("rights_statement").notNull(),
+    sourceUrl: text("source_url").notNull(),
+    isFeatured: boolean("is_featured").default(false).notNull(),
     publisherId: uuid("publisher_id").references(() => publishers.id, {
       onDelete: "set null",
     }),
@@ -87,6 +96,8 @@ export const books = pgTable(
   (table) => [
     uniqueIndex("books_slug_idx").on(table.slug),
     index("books_status_idx").on(table.processingStatus),
+    index("books_published_idx").on(table.publishedAt),
+    index("books_featured_idx").on(table.isFeatured),
   ],
 );
 
