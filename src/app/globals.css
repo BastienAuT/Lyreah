@@ -109,6 +109,327 @@ button {
   box-shadow: 0 24px 80px rgba(52, 49, 67, 0.08);
 }
 
+.catalog-page,
+.book-detail-page {
+  min-height: 100vh;
+  padding: 36px max(24px, calc((100vw - 1180px) / 2));
+  background:
+    radial-gradient(circle at 92% 8%, rgba(241, 214, 220, 0.62), transparent 22rem),
+    linear-gradient(135deg, #fffaf7, #f7f3fb 56%, #eef7f2);
+}
+
+.catalog-header {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 48px;
+  align-items: end;
+  padding-bottom: 44px;
+  border-bottom: 1px solid var(--line);
+}
+
+.catalog-header h1,
+.book-detail h1 {
+  max-width: 760px;
+  margin: 10px 0 14px;
+  font-family: "Cormorant Garamond Variable", Georgia, serif;
+  font-size: clamp(3rem, 7vw, 5.8rem);
+  font-weight: 520;
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+}
+
+.catalog-header > div > p:last-child {
+  max-width: 620px;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.catalog-search {
+  padding: 38px 0 22px;
+}
+
+.catalog-search label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.catalog-search > div {
+  display: flex;
+  max-width: 720px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.catalog-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  padding: 12px 18px;
+  background: transparent;
+  color: var(--ink);
+}
+
+.catalog-search button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 22px;
+  background: var(--forest);
+  color: white;
+  cursor: pointer;
+}
+
+.catalog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-bottom: 34px;
+}
+
+.catalog-filters a {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  transition: 160ms ease;
+}
+
+.catalog-filters a:hover,
+.catalog-filters a.is-active {
+  border-color: var(--forest);
+  background: var(--forest);
+  color: white;
+}
+
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(26px, 4vw, 52px);
+  padding-bottom: 70px;
+}
+
+.catalog-book-card {
+  min-width: 0;
+}
+
+.catalog-cover {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: flex-end;
+  aspect-ratio: 2 / 3;
+  padding: 28px 24px;
+  border-radius: 9px 18px 18px 9px;
+  background:
+    linear-gradient(145deg, hsl(var(--catalog-cover-hue) 42% 83%), hsl(calc(var(--catalog-cover-hue) + 42) 44% 68%));
+  box-shadow: -5px 8px 0 rgba(52, 49, 67, 0.08), 0 24px 48px rgba(52, 49, 67, 0.16);
+  color: #3f3950;
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.catalog-book-card a:hover .catalog-cover {
+  transform: translateY(-6px) rotate(-0.5deg);
+  box-shadow: -5px 10px 0 rgba(52, 49, 67, 0.08), 0 30px 58px rgba(52, 49, 67, 0.2);
+}
+
+.catalog-cover::after {
+  position: absolute;
+  inset: 8px;
+  z-index: -1;
+  border: 1px solid rgba(52, 49, 67, 0.18);
+  border-radius: 5px 13px 13px 5px;
+  content: "";
+}
+
+.catalog-cover__ornament {
+  position: absolute;
+  top: 16%;
+  left: 50%;
+  width: 42%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(52, 49, 67, 0.23);
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.catalog-cover__ornament::before,
+.catalog-cover__ornament::after {
+  position: absolute;
+  inset: 20%;
+  border: 1px solid rgba(52, 49, 67, 0.2);
+  content: "";
+  transform: rotate(45deg);
+}
+
+.catalog-cover strong {
+  max-width: 12ch;
+  font-family: "Cormorant Garamond Variable", Georgia, serif;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 620;
+  line-height: 0.94;
+}
+
+.catalog-cover > span:last-child {
+  margin-top: 12px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.catalog-book-card__meta {
+  padding-top: 20px;
+}
+
+.catalog-book-card__meta p {
+  margin: 0 0 8px;
+  color: var(--forest);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.catalog-book-card__meta h2 {
+  margin: 0 0 4px;
+  font-family: "Cormorant Garamond Variable", Georgia, serif;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.catalog-book-card__meta > span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.catalog-empty,
+.catalog-loading {
+  margin: 30px 0 70px;
+  padding: 40px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.58);
+  text-align: center;
+}
+
+.book-detail-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 42px;
+}
+
+.book-detail {
+  display: grid;
+  grid-template-columns: minmax(280px, 390px) minmax(0, 1fr);
+  gap: clamp(42px, 8vw, 110px);
+  align-items: center;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 30px 0 80px;
+}
+
+.catalog-cover--detail {
+  width: 100%;
+}
+
+.book-detail__author {
+  color: var(--forest);
+  font-weight: 700;
+}
+
+.book-detail__synopsis {
+  max-width: 65ch;
+  margin: 28px 0;
+  color: var(--muted);
+  font-size: 1.08rem;
+  line-height: 1.75;
+}
+
+.book-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+}
+
+.button--disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.rights-note {
+  margin-top: 36px;
+  padding: 20px;
+  border-left: 3px solid var(--moss);
+  background: rgba(207, 225, 212, 0.24);
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.rights-note strong {
+  display: block;
+  color: var(--ink);
+}
+
+.rights-note p {
+  margin: 5px 0;
+}
+
+.rights-note a {
+  color: var(--forest);
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .catalog-header,
+  .book-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .catalog-header {
+    gap: 28px;
+  }
+
+  .book-detail-nav {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .catalog-page,
+  .book-detail-page {
+    padding-inline: 18px;
+  }
+
+  .catalog-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-search > div {
+    align-items: stretch;
+    flex-direction: column;
+    border-radius: 20px;
+  }
+}
+
 .hero-shell {
   position: relative;
   overflow: hidden;
