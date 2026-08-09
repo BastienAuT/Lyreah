@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const books = [
   {
     title: "Frankenstein",
@@ -44,7 +46,7 @@ export default function Home() {
 
           <nav className="main-nav" aria-label="Rubriques">
             <a href="#catalogue">Découvrir</a>
-            <a href="#bibliotheque">Ma bibliothèque</a>
+            <Link href="/bibliotheque">Ma bibliothèque</Link>
             <a href="#ambiances">Ambiances</a>
           </nav>
 
@@ -52,9 +54,9 @@ export default function Home() {
             <button className="search-button" type="button" aria-label="Rechercher">
               <span aria-hidden="true" />
             </button>
-            <a className="account-link" href="#connexion">
+            <Link className="account-link" href="/auth/sign-in">
               Se connecter
-            </a>
+            </Link>
           </div>
         </header>
 
