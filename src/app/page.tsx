@@ -1,69 +1,193 @@
-import Image from "next/image";
+const books = [
+  {
+    title: "Frankenstein",
+    author: "Mary Shelley",
+    label: "Science-fiction gothique",
+    className: "book-cover--sage",
+    mark: "F",
+  },
+  {
+    title: "Alice au pays des merveilles",
+    author: "Lewis Carroll",
+    label: "Conte fantastique",
+    className: "book-cover--rose",
+    mark: "A",
+  },
+  {
+    title: "Le Tour du monde en 80 jours",
+    author: "Jules Verne",
+    label: "Aventure",
+    className: "book-cover--gold",
+    mark: "80",
+  },
+];
+
+const categories = [
+  "Fantastique",
+  "Aventure",
+  "Classiques",
+  "Mystère",
+  "Poésie",
+  "Science-fiction",
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
+    <main>
+      <section className="hero-shell">
+        <header className="site-header" aria-label="Navigation principale">
+          <a className="brand" href="#top" aria-label="Lyreah, accueil">
+            <span className="brand-wordmark" aria-hidden="true">
+              <span className="brand-letter">L</span>yreah
+            </span>
           </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+
+          <nav className="main-nav" aria-label="Rubriques">
+            <a href="#catalogue">Découvrir</a>
+            <a href="#bibliotheque">Ma bibliothèque</a>
+            <a href="#ambiances">Ambiances</a>
+          </nav>
+
+          <div className="header-actions">
+            <button className="search-button" type="button" aria-label="Rechercher">
+              <span aria-hidden="true" />
+            </button>
+            <a className="account-link" href="#connexion">
+              Se connecter
+            </a>
+          </div>
+        </header>
+
+        <div className="hero" id="top">
+          <div className="hero-copy">
+            <p className="eyebrow">Lire. Écouter. S’évader.</p>
+            <h1>Chaque histoire mérite son atmosphère.</h1>
+            <p className="hero-intro">
+              Redécouvrez les grands classiques dans une expérience de lecture
+              immersive, accompagnée d’ambiances sonores pensées pour chaque univers.
+            </p>
+            <div className="hero-actions">
+              <a className="button button--primary" href="#catalogue">
+                Explorer la bibliothèque
+                <span aria-hidden="true">→</span>
+              </a>
+              <a className="text-link" href="#experience">
+                Découvrir l’expérience
+              </a>
+            </div>
+
+            <div className="hero-note">
+              <span className="note-icon" aria-hidden="true">♪</span>
+              <p>
+                <strong>Lecture synchronisée</strong>
+                Reprenez votre livre exactement là où vous l’avez laissé.
+              </p>
+            </div>
+          </div>
+
+          <div className="reader-scene" aria-label="Aperçu du lecteur Lyreah">
+            <div className="orb orb--one" />
+            <div className="orb orb--two" />
+            <article className="reader-card">
+              <div className="reader-topbar">
+                <span>Chapitre VII</span>
+                <span className="reader-progress">42%</span>
+              </div>
+              <div className="reader-page">
+                <p className="drop-cap">
+                  La lune éclairait à peine le sentier lorsque les arbres
+                  commencèrent à murmurer autour de nous.
+                </p>
+                <p>
+                  Je ralentis le pas. Dans le silence de la forêt, chaque souffle
+                  semblait porter le souvenir d’une histoire oubliée.
+                </p>
+                <p>
+                  Au loin, une lumière douce oscillait entre les branches, comme
+                  une invitation à poursuivre notre voyage.
+                </p>
+              </div>
+              <div className="reader-footer">
+                <span>Aa</span>
+                <span className="page-dots"><i /><i className="active" /><i /></span>
+                <span>☾</span>
+              </div>
+            </article>
+
+            <article className="sound-card" id="ambiances">
+              <div className="sound-cover" aria-hidden="true">
+                <span>♪</span>
+              </div>
+              <div className="sound-copy">
+                <small>Ambiance en cours</small>
+                <strong>Forêt enchantée</strong>
+                <span>Pluie douce · Feuillage</span>
+              </div>
+              <button className="pause-button" type="button" aria-label="Mettre en pause">
+                <i />
+                <i />
+              </button>
+            </article>
+          </div>
+        </div>
+
+        <div className="category-row" aria-label="Catégories de livres">
+          {categories.map((category) => (
+            <a href="#catalogue" key={category}>
+              {category}
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section className="catalogue-section" id="catalogue">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">La sélection Lyreah</p>
+            <h2>Des classiques à vivre autrement</h2>
+          </div>
+          <a className="text-link" href="#tous-les-livres">
+            Voir tous les livres <span aria-hidden="true">→</span>
           </a>
         </div>
-      </main>
-    </div>
+
+        <div className="book-grid">
+          {books.map((book) => (
+            <article className="book-card" key={book.title}>
+              <div className={`book-cover ${book.className}`}>
+                <span className="book-mark">{book.mark}</span>
+                <span className="book-title">{book.title}</span>
+                <span className="book-author">{book.author}</span>
+              </div>
+              <p className="book-label">{book.label}</p>
+              <h3>{book.title}</h3>
+              <p>{book.author}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="promise-section" id="experience">
+        <p className="eyebrow">Une nouvelle manière de lire</p>
+        <h2>Le livre reste au centre. L’atmosphère ouvre la porte.</h2>
+        <div className="promise-grid">
+          <article>
+            <span>01</span>
+            <h3>Une lecture à votre rythme</h3>
+            <p>Typographie, thème et mise en page s’adaptent à votre confort.</p>
+          </article>
+          <article id="bibliotheque">
+            <span>02</span>
+            <h3>Votre progression préservée</h3>
+            <p>Votre bibliothèque vous attend sur téléphone, tablette et ordinateur.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Une ambiance sur mesure</h3>
+            <p>Associez chaque histoire à un paysage sonore discret et immersif.</p>
+          </article>
+        </div>
+      </section>
+    </main>
   );
 }

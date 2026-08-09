@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lyreah
 
-## Getting Started
+Application de lecture EPUB avec progression synchronisée et ambiances sonores.
 
-First, run the development server:
+## Stack
+
+- Next.js, React, TypeScript et Tailwind CSS
+- Bun pour les dépendances et les scripts
+- Neon PostgreSQL pour les données
+- Neon Auth pour les comptes et les sessions
+- Supabase Storage pour les fichiers privés
+
+## Développement local
+
+Copier `.env.example` vers `.env.local`, puis renseigner les variables locales. Ne
+jamais exposer `SUPABASE_SERVICE_ROLE_KEY` dans une variable `NEXT_PUBLIC_*`.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+bun install
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+L'application est ensuite disponible sur <http://localhost:3000>.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stockage Supabase
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Créer automatiquement le bucket **privé** configuré dans l'environnement :
 
-## Learn More
+```bash
+bun run storage:setup
+```
 
-To learn more about Next.js, take a look at the following resources:
+Le bucket utilise les préfixes suivants :
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `masters/` : fichiers EPUB originaux, réservés à l'administration ;
+- `renditions/` : contenu EPUB préparé pour le lecteur ;
+- `covers/` : couvertures optimisées ;
+- `audio/` : ambiances sonores.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Le navigateur ne reçoit jamais la clé `service_role`. Les accès de lecture seront
+accordés côté serveur avec des URL signées de courte durée.
 
-## Deploy on Vercel
+`SUPABASE_STORAGE_PREFIX` sépare les objets d'environnement dans le même bucket :
+utiliser `dev` localement et `prod` en production.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Connexions externes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Une fois les variables configurées, vérifier Neon et Supabase sans afficher de
+secret :
+
+```bash
+bun run services:check
+```
+
+## Vérifications
+
+```bash
+bun run lint
+bun run typecheck
+bun run build
+```
