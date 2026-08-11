@@ -12,7 +12,7 @@
   --lavender: #ded8ee;
   --blush: #f1d6dc;
   --sky: #d9e7ef;
-  --muted: #716e7b;
+  --text-muted: #625e6d;
   --line: rgba(52, 49, 67, 0.13);
   --background: oklch(0.985 0.012 345);
   --foreground: oklch(0.31 0.035 290);
@@ -140,7 +140,7 @@ button {
 
 .catalog-header > div > p:last-child {
   max-width: 620px;
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 1.05rem;
   line-height: 1.7;
 }
@@ -197,7 +197,7 @@ button {
   padding: 8px 14px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.86rem;
   transition: 160ms ease;
 }
@@ -308,7 +308,7 @@ button {
 }
 
 .catalog-book-card__meta > span {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.9rem;
 }
 
@@ -351,7 +351,7 @@ button {
 .book-detail__synopsis {
   max-width: 65ch;
   margin: 28px 0;
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 1.08rem;
   line-height: 1.75;
 }
@@ -373,7 +373,7 @@ button {
   padding: 20px;
   border-left: 3px solid var(--moss);
   background: rgba(207, 225, 212, 0.24);
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.84rem;
   line-height: 1.5;
 }
@@ -670,7 +670,7 @@ h1 {
 
 .hero-note p {
   margin: 0;
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.75rem;
   line-height: 1.6;
 }
@@ -1080,7 +1080,7 @@ h1 {
 }
 
 .book-card > p:last-child {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.75rem;
 }
 
@@ -1126,7 +1126,7 @@ h1 {
 
 .promise-grid p {
   max-width: 310px;
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.82rem;
   line-height: 1.7;
 }
