@@ -86,9 +86,16 @@ export const books = pgTable(
     coverObjectKey: text("cover_object_key"),
     epubMasterObjectKey: text("epub_master_object_key"),
     epubRenditionPrefix: text("epub_rendition_prefix"),
+    originalEpubFileName: text("original_epub_file_name"),
+    epubFileSize: integer("epub_file_size"),
     processingStatus: bookProcessingStatus("processing_status")
       .default("pending")
       .notNull(),
+    processingError: text("processing_error"),
+    createdByProfileId: text("created_by_profile_id").references(
+      () => profiles.id,
+      { onDelete: "set null" },
+    ),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

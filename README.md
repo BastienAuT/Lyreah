@@ -40,6 +40,11 @@ Le bucket utilise les préfixes suivants :
 Le navigateur ne reçoit jamais la clé `service_role`. Les accès de lecture seront
 accordés côté serveur avec des URL signées de courte durée.
 
+Les imports administrateur utilisent également une URL signée : le navigateur
+emploie uniquement `NEXT_PUBLIC_SUPABASE_URL` et la clé publiable Supabase. Cette
+clé ne donne aucun accès privilégié au bucket privé ; le jeton temporaire est
+créé par l’API Lyreah après vérification du rôle administrateur.
+
 `SUPABASE_STORAGE_PREFIX` sépare les objets d'environnement dans le même bucket :
 utiliser `dev` localement et `prod` en production.
 
@@ -51,6 +56,21 @@ secret :
 ```bash
 bun run services:check
 ```
+
+## Administration
+
+Après une première connexion, promouvoir le profil de développement :
+
+```bash
+bun run admin:promote
+```
+
+Si plusieurs profils existent, la commande demande explicitement l’identifiant
+à promouvoir. Le back-office est ensuite disponible sur <http://localhost:3000/admin>.
+
+L’import accepte les EPUB jusqu’à 6 Mo et les couvertures AVIF, JPEG, PNG ou WebP
+jusqu’à 4 Mo. Un livre importé reste non publié tant que sa rendition de lecture
+n’a pas été préparée et validée.
 
 ## Vérifications
 

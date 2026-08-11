@@ -56,3 +56,27 @@ export async function createSignedReadUrl(path: string, expiresIn = 60) {
 
   return data.signedUrl;
 }
+
+export async function createSignedUpload(path: string) {
+  const { data, error } = await getSupabaseStorageClient()
+    .storage.from(getStorageBucket())
+    .createSignedUploadUrl(path, { upsert: false });
+
+  if (error) {
+    throw new Error(`Unable to sign upload path "${path}": ${error.message}`);
+  }
+
+  return { path: data.path, token: data.token };
+}
+
+export async function storageObjectExists(path: string) {
+  const { data, error } = await getSupabaseStorageClient()
+    .storage.from(getStorageBucket())
+    .exists(path);
+
+  if (error && !data) {
+    return false;
+  }
+
+  return data;
+}
