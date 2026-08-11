@@ -15,6 +15,13 @@
       "when": 1786299617322,
       "tag": "0001_mysterious_ultimo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786446012419,
+      "tag": "0002_productive_patch",
+      "breakpoints": true
     }
   ]
 }
