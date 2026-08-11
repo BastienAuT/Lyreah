@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const books = [
@@ -5,22 +6,22 @@ const books = [
     title: "Frankenstein",
     author: "Mary Shelley",
     label: "Science-fiction gothique",
-    className: "book-cover--sage",
-    mark: "F",
+    slug: "frankenstein",
+    cover: "/covers/frankenstein.jpg",
   },
   {
     title: "Alice au pays des merveilles",
     author: "Lewis Carroll",
     label: "Conte fantastique",
-    className: "book-cover--rose",
-    mark: "A",
+    slug: "alice-au-pays-des-merveilles",
+    cover: "/covers/alice-au-pays-des-merveilles.jpg",
   },
   {
     title: "Le Tour du monde en 80 jours",
     author: "Jules Verne",
     label: "Aventure",
-    className: "book-cover--gold",
-    mark: "80",
+    slug: "tour-du-monde-en-80-jours",
+    cover: "/covers/tour-du-monde-en-80-jours.jpg",
   },
 ];
 
@@ -156,13 +157,23 @@ export default function Home() {
         <div className="book-grid">
           {books.map((book) => (
             <article className="book-card" key={book.title}>
-              <div className={`book-cover ${book.className}`}>
-                <span className="book-mark">{book.mark}</span>
-                <span className="book-title">{book.title}</span>
-                <span className="book-author">{book.author}</span>
-              </div>
+              <Link
+                className="book-cover book-cover--real"
+                href={`/livres/${book.slug}`}
+                aria-label={`Découvrir ${book.title}`}
+              >
+                <Image
+                  className="book-cover__image"
+                  src={book.cover}
+                  alt={`Couverture de ${book.title}`}
+                  fill
+                  sizes="(max-width: 760px) 360px, (max-width: 1180px) 30vw, 340px"
+                />
+              </Link>
               <p className="book-label">{book.label}</p>
-              <h3>{book.title}</h3>
+              <h3>
+                <Link href={`/livres/${book.slug}`}>{book.title}</Link>
+              </h3>
               <p>{book.author}</p>
             </article>
           ))}
