@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { catalogCoverPaths } from "@/catalog/cover-assets";
 
 const books = [
   {
@@ -7,21 +8,21 @@ const books = [
     author: "Mary Shelley",
     label: "Science-fiction gothique",
     slug: "frankenstein",
-    cover: "/covers/frankenstein.jpg",
+    cover: catalogCoverPaths.frankenstein,
   },
   {
     title: "Alice au pays des merveilles",
     author: "Lewis Carroll",
     label: "Conte fantastique",
     slug: "alice-au-pays-des-merveilles",
-    cover: "/covers/alice-au-pays-des-merveilles.jpg",
+    cover: catalogCoverPaths["alice-au-pays-des-merveilles"],
   },
   {
     title: "Le Tour du monde en 80 jours",
     author: "Jules Verne",
     label: "Aventure",
     slug: "tour-du-monde-en-80-jours",
-    cover: "/covers/tour-du-monde-en-80-jours.jpg",
+    cover: catalogCoverPaths["tour-du-monde-en-80-jours"],
   },
 ];
 

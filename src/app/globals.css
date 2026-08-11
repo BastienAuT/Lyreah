@@ -987,6 +987,27 @@ h1 {
     linear-gradient(145deg, #f8edc9, #e6c985);
 }
 
+.catalog-cover--image {
+  padding: 0;
+  background: linear-gradient(145deg, var(--moss), var(--lavender));
+}
+
+.catalog-cover--image::after {
+  z-index: 2;
+  border-color: rgba(255, 255, 255, 0.42);
+  pointer-events: none;
+}
+
+.catalog-cover__image {
+  z-index: 1;
+  object-fit: cover;
+  transition: transform 300ms ease;
+}
+
+.catalog-book-card a:hover .catalog-cover__image {
+  transform: scale(1.025);
+}
+
 .book-cover--real {
   isolation: isolate;
   padding: 0;
