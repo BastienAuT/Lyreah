@@ -12,6 +12,7 @@ import {
 import {
   createSignedUpload,
   createStoragePath,
+  removeStorageObjects,
   storageObjectExists,
 } from "@/storage/supabase";
 import { type AdminBookImport, slugify } from "./import-schema";
@@ -26,13 +27,31 @@ export async function createBookImport(
 ) {
   const database = getDatabase();
   const [existingBook] = await database
-    .select({ id: books.id })
+    .select({
+      id: books.id,
+      processingStatus: books.processingStatus,
+      createdByProfileId: books.createdByProfileId,
+      epubMasterObjectKey: books.epubMasterObjectKey,
+      coverObjectKey: books.coverObjectKey,
+    })
     .from(books)
     .where(eq(books.slug, input.slug))
     .limit(1);
 
   if (existingBook) {
-    throw new Error("BOOK_SLUG_EXISTS");
+    const canReplaceAbandonedImport =
+      existingBook.processingStatus === "pending" &&
+      existingBook.createdByProfileId === profileId;
+
+    if (!canReplaceAbandonedImport) {
+      throw new Error("BOOK_SLUG_EXISTS");
+    }
+
+    await removeStorageObjects([
+      existingBook.epubMasterObjectKey,
+      existingBook.coverObjectKey,
+    ]);
+    await database.delete(books).where(eq(books.id, existingBook.id));
   }
 
   const bookId = crypto.randomUUID();
@@ -150,6 +169,7 @@ export async function getRecentBookImports() {
       title: books.title,
       slug: books.slug,
       processingStatus: books.processingStatus,
+      processingError: books.processingError,
       originalEpubFileName: books.originalEpubFileName,
       createdAt: books.createdAt,
     })

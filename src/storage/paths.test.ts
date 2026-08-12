@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { createStoragePath } from "./paths";
+import {
+  createNestedStoragePath,
+  createStoragePath,
+  createStorageResourcePrefix,
+} from "./paths";
 
 describe("createStoragePath", () => {
   test("separates environments and folders", () => {
@@ -19,5 +23,30 @@ describe("createStoragePath", () => {
 
   test("rejects empty required segments", () => {
     expect(() => createStoragePath("covers", "", "cover.webp", "dev")).toThrow();
+  });
+
+  test("keeps safe nested rendition paths", () => {
+    expect(createStorageResourcePrefix("renditions", "book-42", "dev")).toBe(
+      "dev/renditions/book-42",
+    );
+    expect(
+      createNestedStoragePath(
+        "renditions",
+        "book-42",
+        "EPUB/images/cover image.jpg",
+        "dev",
+      ),
+    ).toBe("dev/renditions/book-42/EPUB/images/cover image.jpg");
+  });
+
+  test("rejects nested storage traversal", () => {
+    expect(() =>
+      createNestedStoragePath(
+        "renditions",
+        "book-42",
+        "EPUB/../../secret.txt",
+        "dev",
+      ),
+    ).toThrow();
   });
 });

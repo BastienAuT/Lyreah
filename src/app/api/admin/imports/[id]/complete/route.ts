@@ -1,5 +1,9 @@
+import { after } from "next/server";
 import { getCurrentAccess } from "@/admin/access";
 import { completeBookImport } from "@/admin/imports";
+import { processBookRendition } from "@/epub/processing";
+
+export const maxDuration = 60;
 
 export async function POST(
   _request: Request,
@@ -19,6 +23,7 @@ export async function POST(
 
   try {
     const book = await completeBookImport(id);
+    after(() => processBookRendition(book.id));
     return Response.json({ book });
   } catch (error) {
     if (error instanceof Error && error.message === "BOOK_IMPORT_NOT_FOUND") {

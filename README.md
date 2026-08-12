@@ -72,6 +72,16 @@ L’import accepte les EPUB jusqu’à 6 Mo et les couvertures AVIF, JPEG, PNG o
 jusqu’à 4 Mo. Un livre importé reste non publié tant que sa rendition de lecture
 n’a pas été préparée et validée.
 
+Après confirmation de l’upload, Lyreah vérifie automatiquement la structure de
+l’EPUB, bloque les chemins dangereux et les archives démesurées, puis extrait les
+fichiers de lecture dans `renditions/<book-id>/`. Le statut visible dans le
+back-office passe à `ready` ou `failed` à la fin du traitement. Un import échoué
+peut être relancé en confirmant à nouveau son upload.
+
+Si le navigateur interrompt l’envoi avant sa confirmation, une nouvelle
+soumission avec le même slug remplace automatiquement l’import `pending`
+abandonné par le même administrateur.
+
 ## Vérifications
 
 ```bash
