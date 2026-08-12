@@ -1627,6 +1627,46 @@ h1 {
   white-space: nowrap;
 }
 
+.admin-import-list article > div .admin-processing-error {
+  color: #8a3d50;
+  white-space: normal;
+}
+
+.admin-import-state {
+  align-items: flex-end;
+}
+
+.admin-retry {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.admin-retry button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--forest);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.admin-retry button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.admin-retry span {
+  max-width: 260px;
+  color: #8a3d50;
+  text-align: right;
+  white-space: normal;
+}
+
 .admin-status {
   flex: 0 0 auto;
   padding: 7px 11px;

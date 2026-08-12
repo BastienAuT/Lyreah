@@ -2,12 +2,13 @@ import Link from "next/link";
 import { requireAdminPage } from "@/admin/access";
 import { getRecentBookImports } from "@/admin/imports";
 import { BookImportForm } from "@/components/admin/book-import-form";
+import { RetryRenditionButton } from "@/components/admin/retry-rendition-button";
 
 export const dynamic = "force-dynamic";
 
 const statusLabels = {
   pending: "Fichiers attendus",
-  processing: "À préparer",
+  processing: "Préparation en cours",
   ready: "Prêt",
   failed: "Échec",
 } as const;
@@ -53,10 +54,20 @@ export default async function AdminPage() {
                   <div>
                     <strong>{book.title}</strong>
                     <span>{book.originalEpubFileName || "Livre du catalogue"}</span>
+                    {book.processingError ? (
+                      <span className="admin-processing-error">
+                        {book.processingError}
+                      </span>
+                    ) : null}
                   </div>
-                  <span className={`admin-status admin-status--${book.processingStatus}`}>
-                    {statusLabels[book.processingStatus]}
-                  </span>
+                  <div className="admin-import-state">
+                    <span className={`admin-status admin-status--${book.processingStatus}`}>
+                      {statusLabels[book.processingStatus]}
+                    </span>
+                    {book.processingStatus === "failed" ? (
+                      <RetryRenditionButton bookId={book.id} />
+                    ) : null}
+                  </div>
                 </article>
               ))}
             </div>

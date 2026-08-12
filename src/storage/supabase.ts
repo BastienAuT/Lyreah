@@ -2,7 +2,12 @@ import "server-only";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-export { createStoragePath, storageFolders } from "./paths";
+export {
+  createNestedStoragePath,
+  createStoragePath,
+  createStorageResourcePrefix,
+  storageFolders,
+} from "./paths";
 export type { StorageFolder } from "./paths";
 
 let storageClient: SupabaseClient | undefined;
@@ -79,4 +84,52 @@ export async function storageObjectExists(path: string) {
   }
 
   return data;
+}
+
+export async function downloadStorageObject(path: string) {
+  const { data, error } = await getSupabaseStorageClient()
+    .storage.from(getStorageBucket())
+    .download(path);
+
+  if (error || !data) {
+    throw new Error(
+      `Unable to download storage path "${path}": ${error?.message ?? "empty response"}`,
+    );
+  }
+
+  return data.arrayBuffer();
+}
+
+export async function uploadStorageObject(
+  path: string,
+  contents: Uint8Array,
+  contentType: string,
+) {
+  const { error } = await getSupabaseStorageClient()
+    .storage.from(getStorageBucket())
+    .upload(path, contents, {
+      cacheControl: "3600",
+      contentType,
+      upsert: true,
+    });
+
+  if (error) {
+    throw new Error(`Unable to upload storage path "${path}": ${error.message}`);
+  }
+}
+
+export async function removeStorageObjects(paths: Array<string | null>) {
+  const existingPaths = paths.filter((path): path is string => Boolean(path));
+
+  if (existingPaths.length === 0) {
+    return;
+  }
+
+  const { error } = await getSupabaseStorageClient()
+    .storage.from(getStorageBucket())
+    .remove(existingPaths);
+
+  if (error) {
+    throw new Error(`Unable to remove abandoned storage objects: ${error.message}`);
+  }
 }

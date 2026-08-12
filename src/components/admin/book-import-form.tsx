@@ -150,7 +150,7 @@ export function BookImportForm() {
       formRef.current?.reset();
       setSlugTouched(false);
       setStatus("success");
-      setMessage("Livre importé. Il est maintenant en attente de préparation.");
+      setMessage("Livre importé. Sa préparation EPUB a démarré.");
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "L’import a échoué.");
