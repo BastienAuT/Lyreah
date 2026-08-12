@@ -1687,6 +1687,62 @@ h1 {
   color: #8a3d50;
 }
 
+.admin-publication-state {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-publication-state.is-published {
+  color: #3d654e;
+}
+
+.admin-publication-control {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.admin-publication-control button {
+  min-width: 90px;
+  border: 1px solid var(--forest);
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: transparent;
+  color: var(--forest);
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 750;
+}
+
+.admin-publication-control button:hover:not(:disabled) {
+  background: var(--forest);
+  color: white;
+}
+
+.admin-publication-control button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.admin-publication-message {
+  max-width: 260px;
+  font-size: 0.7rem;
+  text-align: right;
+  white-space: normal;
+}
+
+.admin-publication-message--success {
+  color: #3d654e;
+}
+
+.admin-publication-message--error {
+  color: #8a3d50;
+}
+
 .admin-empty {
   padding: 26px;
   border: 1px solid var(--line);
