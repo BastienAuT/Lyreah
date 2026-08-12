@@ -1,18 +1,29 @@
 import "server-only";
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { getDatabase } from "@/db";
 import { profiles } from "@/db/schema";
 import { auth } from "./server";
 
-export async function requireCurrentUser() {
+export const getCurrentUser = cache(async () => {
   const { data: session, error } = await auth.getSession();
 
   if (error || !session?.user) {
-    redirect("/auth/sign-in");
+    return null;
   }
 
   return session.user;
+});
+
+export async function requireCurrentUser() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/auth/sign-in");
+  }
+
+  return user;
 }
 
 export async function ensureCurrentProfile() {
