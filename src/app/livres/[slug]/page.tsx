@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getCurrentUser } from "@/auth/session";
 import { getCatalogBookBySlug } from "@/catalog/queries";
 import { BookCover } from "@/components/catalog/book-cover";
+import { addBookToLibrary, removeBookFromLibrary } from "@/library/actions";
+import { getLibraryEntry } from "@/library/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +17,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function BookPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const book = await getCatalogBookBySlug(slug);
+  const [book, user] = await Promise.all([
+    getCatalogBookBySlug(slug),
+    getCurrentUser(),
+  ]);
 
   if (!book) notFound();
 
   const author = book.authors.map((item) => item.name).join(", ") || "Auteur inconnu";
   const isReady = book.processingStatus === "ready" && Boolean(book.epubRenditionPrefix);
+  const libraryEntry = user ? await getLibraryEntry(user.id, book.id) : null;
 
   return (
     <main className="book-detail-page">
@@ -40,7 +47,12 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
             ) : (
               <span className="button button--disabled">Lecture bientôt disponible</span>
             )}
-            <Link className="text-link" href="/bibliotheque">Ajouter à ma bibliothèque</Link>
+            <form action={libraryEntry ? removeBookFromLibrary : addBookToLibrary}>
+              <input name="bookId" type="hidden" value={book.id} />
+              <button className="text-link library-action" type="submit">
+                {libraryEntry ? "Retirer de ma bibliothèque" : "Ajouter à ma bibliothèque"}
+              </button>
+            </form>
           </div>
           <aside className="rights-note">
             <strong>Droits et provenance</strong>
