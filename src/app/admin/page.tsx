@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { requireAdminPage } from "@/admin/access";
 import { getRecentBookImports } from "@/admin/imports";
+import { canPublishBook } from "@/admin/publication-rules";
 import { BookImportForm } from "@/components/admin/book-import-form";
+import { PublicationControl } from "@/components/admin/publication-control";
 import { RetryRenditionButton } from "@/components/admin/retry-rendition-button";
 
 export const dynamic = "force-dynamic";
@@ -64,9 +66,17 @@ export default async function AdminPage() {
                     <span className={`admin-status admin-status--${book.processingStatus}`}>
                       {statusLabels[book.processingStatus]}
                     </span>
+                    <span className={`admin-publication-state${book.publishedAt ? " is-published" : ""}`}>
+                      {book.publishedAt ? "Publié" : "Non publié"}
+                    </span>
                     {book.processingStatus === "failed" ? (
                       <RetryRenditionButton bookId={book.id} />
                     ) : null}
+                    <PublicationControl
+                      bookId={book.id}
+                      canPublish={canPublishBook(book)}
+                      isPublished={Boolean(book.publishedAt)}
+                    />
                   </div>
                 </article>
               ))}

@@ -170,6 +170,8 @@ export async function getRecentBookImports() {
       slug: books.slug,
       processingStatus: books.processingStatus,
       processingError: books.processingError,
+      epubRenditionPrefix: books.epubRenditionPrefix,
+      publishedAt: books.publishedAt,
       originalEpubFileName: books.originalEpubFileName,
       createdAt: books.createdAt,
     })
