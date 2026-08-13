@@ -5,5 +5,10 @@ export default auth.middleware({
 });
 
 export const config = {
-  matcher: ["/bibliotheque/:path*", "/compte/:path*", "/admin/:path*"],
+  matcher: [
+    "/bibliotheque/:path*",
+    "/compte/:path*",
+    "/admin/:path*",
+    "/lire/:path*",
+  ],
 };
