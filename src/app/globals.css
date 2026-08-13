@@ -301,29 +301,19 @@ button {
   justify-content: center;
   gap: 9px;
   justify-self: center;
-  max-width: min(100%, 520px);
-  padding: 9px 18px;
-  border: 1px solid rgba(109, 99, 136, 0.12);
-  border-radius: 999px;
-  background: rgba(255, 253, 251, 0.58);
-  box-shadow: 0 8px 30px rgba(75, 67, 98, 0.05);
+  max-width: min(100%, 560px);
+  padding: 0 18px;
   text-align: center;
 }
 
 .reader-shell__book::before {
-  flex: 0 0 auto;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--blush);
-  box-shadow: 0 0 0 4px rgba(241, 214, 220, 0.28);
-  content: "";
+  display: none;
 }
 
 .reader-shell__book strong {
   overflow: hidden;
   font-family: "Cormorant Garamond Variable", Georgia, serif;
-  font-size: 1.1rem;
+  font-size: 1.22rem;
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -331,6 +321,8 @@ button {
 
 .reader-shell__book span {
   flex: 0 0 auto;
+  padding-left: 10px;
+  border-left: 1px solid rgba(109, 99, 136, 0.2);
   color: var(--text-muted);
   font-size: 0.68rem;
 }
@@ -350,9 +342,9 @@ button {
 }
 
 .epub-reader__header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) minmax(0, 2fr) minmax(90px, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 20px;
   height: 58px;
   padding: 0 clamp(22px, 3vw, 44px);
@@ -363,6 +355,7 @@ button {
 .epub-reader__chapter {
   overflow: hidden;
   min-width: 0;
+  justify-self: center;
   color: var(--forest-light);
   font-size: 0.66rem;
   font-weight: 750;
@@ -377,6 +370,7 @@ button {
   flex: 0 0 auto;
   gap: 16px;
   align-items: center;
+  justify-self: end;
 }
 
 .epub-reader__font-controls {
@@ -482,6 +476,7 @@ button {
 }
 
 .epub-reader__controls {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(110px, 1fr) auto minmax(110px, 1fr);
   align-items: center;
@@ -492,6 +487,200 @@ button {
   background: rgba(255, 253, 251, 0.88);
   color: var(--text-muted);
   font-size: 0.67rem;
+}
+
+.epub-reader__status {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
+}
+
+.epub-reader__status > span {
+  flex: 0 0 auto;
+}
+
+.ambient-player {
+  position: relative;
+  min-width: 0;
+}
+
+.ambient-player audio {
+  display: none;
+}
+
+.ambient-player__mini {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ambient-player__details,
+.ambient-player__toggle {
+  border: 0;
+  background: transparent;
+  color: var(--forest);
+  cursor: pointer;
+}
+
+.ambient-player__details {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  padding: 0;
+  text-align: left;
+}
+
+.ambient-player__details > span:first-child {
+  display: grid;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  place-items: center;
+  background: linear-gradient(145deg, var(--moss), var(--lavender));
+  color: #fffdfb;
+  font-size: 0.86rem;
+}
+
+.ambient-player__details > span:nth-child(2) {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ambient-player__details small {
+  color: var(--text-muted);
+  font-size: 0.52rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.ambient-player__details strong {
+  overflow: hidden;
+  max-width: 16ch;
+  color: var(--ink);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.epub-reader__page {
+  color: var(--text-muted);
+  font-size: 0.64rem;
+}
+
+.ambient-player__toggle {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  place-items: center;
+  font-size: 0.66rem;
+  transition: transform 160ms ease, color 160ms ease;
+}
+
+.ambient-player__toggle:hover,
+.ambient-player__details:hover {
+  color: var(--ink);
+}
+
+.ambient-player__toggle:hover {
+  transform: scale(1.08);
+}
+
+.ambient-player__panel {
+  position: absolute;
+  bottom: calc(100% + 15px);
+  left: 0;
+  display: flex;
+  width: 290px;
+  flex-direction: column;
+  padding: 20px;
+  border: 1px solid rgba(109, 99, 136, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 253, 251, 0.97);
+  box-shadow: 0 20px 55px rgba(75, 67, 98, 0.18);
+}
+
+.ambient-player__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  place-items: center;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.05rem;
+  transition: 160ms ease;
+}
+
+.ambient-player__close:hover {
+  background: rgba(222, 216, 238, 0.42);
+  color: var(--ink);
+}
+
+.ambient-player__panel p {
+  margin: 0 0 5px;
+  color: var(--forest-light);
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ambient-player__panel > strong {
+  color: var(--ink);
+  font-family: "Cormorant Garamond Variable", Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 650;
+}
+
+.ambient-player__panel > span {
+  margin-top: 5px;
+  color: var(--text-muted);
+  font-size: 0.69rem;
+  line-height: 1.45;
+}
+
+.ambient-player__panel label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: center;
+  margin-top: 18px;
+  color: var(--ink);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.ambient-player__panel input {
+  width: 100%;
+  accent-color: var(--forest);
+}
+
+.ambient-player__panel > small {
+  margin-top: 14px;
+  color: var(--text-muted);
+  font-size: 0.55rem;
+}
+
+.ambient-player__panel a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ambient-player__error {
+  color: #8a3d50;
+  font-size: 0.58rem;
 }
 
 .epub-reader__navigation {
@@ -538,12 +727,21 @@ button {
 
 .epub-reader__navigation button:disabled {
   cursor: not-allowed;
-  opacity: 0.35;
+  color: #77717f;
+  opacity: 0.58;
 }
 
 .epub-reader__progress-wrap {
+  display: grid;
+  gap: 5px;
   width: min(100%, 180px);
   justify-self: end;
+}
+
+.epub-reader__progress-wrap > span {
+  color: var(--text-muted);
+  font-size: 0.54rem;
+  text-align: right;
 }
 
 .epub-reader__progress {
@@ -561,7 +759,7 @@ button {
   transition: width 250ms ease;
 }
 
-.epub-reader__controls strong {
+.epub-reader__controls > strong {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -639,8 +837,19 @@ button {
   }
 
   .epub-reader__header {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 10px;
     height: 44px;
     padding: 0 14px;
+  }
+
+  .epub-reader__page,
+  .epub-reader__chapter {
+    font-size: 0.56rem;
+  }
+
+  .epub-reader__chapter {
+    max-width: 100%;
   }
 
   .epub-reader__stage {
@@ -660,14 +869,26 @@ button {
   }
 
   .epub-reader__controls {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto 1fr;
+    gap: 8px;
     height: 54px;
     padding: 0 8px;
   }
 
-  .epub-reader__controls > span,
   .epub-reader__progress-wrap {
     display: none;
+  }
+
+  .ambient-player__details > span:nth-child(2) {
+    display: none;
+  }
+
+  .ambient-player__panel {
+    width: min(280px, calc(100vw - 36px));
+  }
+
+  .epub-reader__navigation {
+    justify-self: center;
   }
 
   .epub-reader__navigation button {

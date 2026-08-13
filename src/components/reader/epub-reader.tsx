@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type Book from "epubjs/types/book";
 import type Rendition from "epubjs/types/rendition";
 import type { Location } from "epubjs/types/rendition";
+import { AmbientAudioPlayer } from "./ambient-audio-player";
 
 type ReaderAccess = { url: string; expiresIn: number };
 
@@ -126,17 +127,35 @@ export function EpubReader({
           if (disposed) return;
 
           const current = book.navigation.get(location.start.href);
-          const displayed = location.start.displayed;
+          const displayedStart = location.start.displayed;
+          const displayedEnd = location.end.displayed;
+          const isTwoPageSpread =
+            location.start.href === location.end.href &&
+            displayedEnd.page > displayedStart.page;
+          const isWholeChapter =
+            displayedStart.page === 1 &&
+            displayedEnd.page === displayedEnd.total;
+          const spineLength = book.spine.last().index + 1;
+          const sectionProgress = displayedEnd.total
+            ? displayedEnd.page / displayedEnd.total
+            : 0;
 
           setChapter(current?.label?.trim() || "Lecture");
           setPageLabel(
-            displayed?.total
-              ? `Page ${displayed.page} sur ${displayed.total}`
+            displayedStart.total
+              ? isWholeChapter
+                ? "Chapitre entier"
+                : isTwoPageSpread
+                ? `Pages ${displayedStart.page}–${displayedEnd.page} sur ${displayedEnd.total}`
+                : `Page ${displayedStart.page} sur ${displayedStart.total}`
               : "",
           );
           setProgress(
-            displayed?.total
-              ? Math.min(100, (displayed.page / displayed.total) * 100)
+            spineLength
+              ? Math.min(
+                  100,
+                  ((location.end.index + sectionProgress) / spineLength) * 100,
+                )
               : 0,
           );
           setAtStart(location.atStart);
@@ -193,6 +212,7 @@ export function EpubReader({
   return (
     <section className="epub-reader" aria-label={`Lecture de ${title}`}>
       <header className="epub-reader__header">
+        <span className="epub-reader__page">{pageLabel || "Lecture"}</span>
         <span className="epub-reader__chapter">{chapter}</span>
         <div className="epub-reader__tools">
           <div aria-label="Taille du texte" className="epub-reader__font-controls">
@@ -235,7 +255,9 @@ export function EpubReader({
       </div>
 
       <footer className="epub-reader__controls">
-        <span>{pageLabel || "Lecture en cours"}</span>
+        <div className="epub-reader__status">
+          <AmbientAudioPlayer bookId={bookId} />
+        </div>
         <div className="epub-reader__navigation" aria-label="Navigation dans le livre">
           <button
             disabled={status !== "ready" || atStart}
@@ -255,7 +277,15 @@ export function EpubReader({
           </button>
         </div>
         <div className="epub-reader__progress-wrap">
-          <div className="epub-reader__progress" aria-hidden="true">
+          <span>Progression du livre {Math.round(progress)} %</span>
+          <div
+            aria-label="Progression du livre"
+            aria-valuemax={100}
+            aria-valuemin={0}
+            aria-valuenow={Math.round(progress)}
+            className="epub-reader__progress"
+            role="progressbar"
+          >
             <i style={{ width: `${progress}%` }} />
           </div>
         </div>
