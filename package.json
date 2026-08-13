@@ -14,6 +14,7 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "bun run scripts/seed-catalog.ts",
     "epub:fixture": "bun run scripts/create-test-epub.ts",
+    "audio:fixture": "bun run scripts/create-test-soundscape.ts",
     "admin:promote": "bun run scripts/promote-admin.ts",
     "storage:setup": "bun run scripts/setup-storage.ts",
     "services:check": "bun run scripts/check-services.ts"
