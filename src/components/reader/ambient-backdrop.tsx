@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { isVisualEffect, type VisualEffect } from "@/audio/effects";
 
-type AmbientEffect = "none" | "fireflies" | "rain" | "mist" | "breeze";
+type AmbientEffect = VisualEffect;
 type ReaderTheme = "paper" | "sepia" | "night";
 type Rgb = readonly [number, number, number];
 type PageBounds = { left: number; right: number };
@@ -11,6 +12,21 @@ type ThemePalette = {
   firefly: { core: Rgb; glow: Rgb; haze: Rgb; moon: Rgb; strength: number };
   rain: { line: Rgb; haze: Rgb; shine: Rgb; strength: number };
   mist: { first: Rgb; second: Rgb; light: Rgb; strength: number };
+};
+
+type MarinePalette = {
+  deep: Rgb;
+  foam: Rgb;
+  glow: Rgb;
+  signal: Rgb;
+  water: Rgb;
+};
+
+type StormPalette = {
+  cloud: Rgb;
+  flash: Rgb;
+  glow: Rgb;
+  shadow: Rgb;
 };
 
 const PALETTES: Record<ReaderTheme, ThemePalette> = {
@@ -79,6 +95,51 @@ const PALETTES: Record<ReaderTheme, ThemePalette> = {
   },
 };
 
+const MARINE_PALETTES: Record<ReaderTheme, MarinePalette> = {
+  paper: {
+    deep: [43, 86, 105],
+    foam: [226, 243, 239],
+    glow: [142, 205, 203],
+    signal: [210, 118, 86],
+    water: [74, 142, 158],
+  },
+  sepia: {
+    deep: [77, 94, 91],
+    foam: [239, 223, 191],
+    glow: [158, 183, 166],
+    signal: [179, 99, 70],
+    water: [97, 134, 137],
+  },
+  night: {
+    deep: [8, 35, 49],
+    foam: [169, 210, 211],
+    glow: [49, 139, 151],
+    signal: [222, 83, 68],
+    water: [22, 86, 105],
+  },
+};
+
+const STORM_PALETTES: Record<ReaderTheme, StormPalette> = {
+  paper: {
+    cloud: [94, 92, 112],
+    flash: [242, 238, 255],
+    glow: [155, 143, 184],
+    shadow: [43, 39, 57],
+  },
+  sepia: {
+    cloud: [105, 91, 82],
+    flash: [255, 236, 191],
+    glow: [159, 123, 110],
+    shadow: [53, 42, 42],
+  },
+  night: {
+    cloud: [59, 57, 77],
+    flash: [215, 217, 255],
+    glow: [103, 86, 147],
+    shadow: [14, 12, 23],
+  },
+};
+
 type Particle = {
   depth: number;
   drift: number;
@@ -123,12 +184,7 @@ function readTheme(): ReaderTheme {
 
 function readEffect(): AmbientEffect {
   const value = document.documentElement.dataset.soundscapeEffect;
-  return value === "fireflies" ||
-    value === "rain" ||
-    value === "mist" ||
-    value === "breeze"
-    ? value
-    : "none";
+  return isVisualEffect(value) ? value : "none";
 }
 
 function readEffectsIntensity() {
@@ -183,6 +239,8 @@ export function AmbientBackdrop() {
     const fireflies = createParticles(15, 0x6c797265);
     const stars = createParticles(24, 0x73746172);
     const rain = createParticles(168, 0x7261696e);
+    const bubbles = createParticles(36, 0x62756262);
+    const harborLights = createParticles(14, 0x68617262);
     const fogNoise = createFogNoise();
     let width = 0;
     let height = 0;
@@ -479,6 +537,240 @@ export function AmbientBackdrop() {
       }
     }
 
+    function clipOutsideBook(bounds: PageBounds) {
+      context.beginPath();
+      context.rect(0, 0, bounds.left, height);
+      context.rect(bounds.right, 0, width - bounds.right, height);
+      context.clip();
+    }
+
+    function drawHarbor(elapsed: number, palette: MarinePalette) {
+      const bounds = pageBounds();
+      context.save();
+      clipOutsideBook(bounds);
+
+      const sea = context.createLinearGradient(0, height * 0.3, 0, height);
+      sea.addColorStop(0, rgba(palette.glow, intensity * 0.025));
+      sea.addColorStop(0.55, rgba(palette.water, intensity * 0.13));
+      sea.addColorStop(1, rgba(palette.deep, intensity * 0.2));
+      context.fillStyle = sea;
+      context.fillRect(0, 0, width, height);
+
+      const lineCount = performanceMode ? 4 : 7;
+      for (let line = 0; line < lineCount; line += 1) {
+        const y = height * (0.58 + line * 0.052);
+        const amplitude = 3 + line * 0.8;
+        context.strokeStyle = rgba(
+          line % 2 ? palette.water : palette.foam,
+          intensity * (0.1 + line * 0.012),
+        );
+        context.lineWidth = 0.7 + line * 0.08;
+        context.beginPath();
+        for (let x = -24; x <= width + 24; x += 18) {
+          const waveY =
+            y +
+            Math.sin(x * 0.018 + elapsed * 0.00028 + line * 0.9) * amplitude +
+            Math.sin(x * 0.041 - elapsed * 0.00016) * 1.4;
+          if (x === -24) context.moveTo(x, waveY);
+          else context.lineTo(x, waveY);
+        }
+        context.stroke();
+      }
+
+      harborLights.forEach((light, index) => {
+        if (performanceMode && index % 2) return;
+        const x = sidePosition(light, bounds, 22);
+        const y = height * (0.46 + light.y * 0.08);
+        const pulse = 0.5 + Math.sin(elapsed * 0.0006 + light.phase) * 0.3;
+        const radius = 5 + light.size * 5;
+        const glow = context.createRadialGradient(x, y, 0, x, y, radius);
+        glow.addColorStop(0, rgba(palette.foam, intensity * pulse * 0.38));
+        glow.addColorStop(1, rgba(palette.glow, 0));
+        context.fillStyle = glow;
+        context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+      });
+
+      const fog = context.createLinearGradient(0, 0, width, 0);
+      fog.addColorStop(0, rgba(palette.foam, intensity * 0.12));
+      fog.addColorStop(0.23, rgba(palette.foam, 0));
+      fog.addColorStop(0.77, rgba(palette.foam, 0));
+      fog.addColorStop(1, rgba(palette.foam, intensity * 0.1));
+      context.fillStyle = fog;
+      context.fillRect(0, 0, width, height * 0.64);
+      context.restore();
+    }
+
+    function drawUnderwater(elapsed: number, palette: MarinePalette) {
+      const bounds = pageBounds();
+      context.save();
+      clipOutsideBook(bounds);
+
+      const depth = context.createLinearGradient(0, 0, 0, height);
+      depth.addColorStop(0, rgba(palette.glow, intensity * 0.2));
+      depth.addColorStop(0.48, rgba(palette.water, intensity * 0.24));
+      depth.addColorStop(1, rgba(palette.deep, intensity * 0.36));
+      context.fillStyle = depth;
+      context.fillRect(0, 0, width, height);
+
+      const rays = performanceMode ? 3 : 5;
+      for (let ray = 0; ray < rays; ray += 1) {
+        const sway = Math.sin(elapsed * 0.00012 + ray * 1.4) * 34;
+        const originX = ray % 2 ? width + sway : sway;
+        const spread = 70 + ray * 22;
+        const gradient = context.createLinearGradient(originX, 0, originX, height * 0.8);
+        gradient.addColorStop(0, rgba(palette.foam, intensity * 0.16));
+        gradient.addColorStop(1, rgba(palette.glow, 0));
+        context.fillStyle = gradient;
+        context.beginPath();
+        context.moveTo(originX - 18, 0);
+        context.lineTo(originX + 18, 0);
+        context.lineTo(originX + (ray % 2 ? -spread : spread), height * 0.86);
+        context.lineTo(originX + (ray % 2 ? -spread - 80 : spread + 80), height * 0.86);
+        context.closePath();
+        context.fill();
+      }
+
+      bubbles.forEach((bubble, index) => {
+        if ((width < 760 && index % 2) || (performanceMode && index % 2)) return;
+        const travel = (bubble.y - elapsed * 0.000035 * bubble.speed + 1.4) % 1.15;
+        const x =
+          sidePosition(bubble, bounds, 20) +
+          Math.sin(elapsed * 0.00035 + bubble.phase) * 8 * bubble.drift;
+        const y = height * (1.08 - travel);
+        const radius = 1.2 + bubble.size * 1.7;
+        context.strokeStyle = rgba(palette.foam, intensity * bubble.depth * 0.38);
+        context.lineWidth = 0.55;
+        context.beginPath();
+        context.arc(x, y, radius, 0, Math.PI * 2);
+        context.stroke();
+      });
+
+      context.restore();
+    }
+
+    function drawSubmarine(elapsed: number, palette: MarinePalette) {
+      const bounds = pageBounds();
+      context.save();
+      clipOutsideBook(bounds);
+
+      const interior = context.createLinearGradient(0, 0, width, height);
+      interior.addColorStop(0, rgba(palette.deep, intensity * 0.38));
+      interior.addColorStop(0.5, rgba(palette.water, intensity * 0.1));
+      interior.addColorStop(1, rgba(palette.deep, intensity * 0.4));
+      context.fillStyle = interior;
+      context.fillRect(0, 0, width, height);
+
+      const centers = [
+        { x: Math.max(40, bounds.left * 0.44), y: height * 0.54 },
+        { x: bounds.right + Math.max(40, (width - bounds.right) * 0.56), y: height * 0.54 },
+      ];
+      const sweep = elapsed * 0.00023;
+      centers.forEach(({ x, y }, side) => {
+        const radius = Math.max(45, Math.min(side ? width - bounds.right : bounds.left, 170));
+        context.strokeStyle = rgba(palette.glow, intensity * 0.17);
+        context.lineWidth = 0.7;
+        for (let ring = 1; ring <= 3; ring += 1) {
+          context.beginPath();
+          context.arc(x, y, (radius * ring) / 3, 0, Math.PI * 2);
+          context.stroke();
+        }
+        context.beginPath();
+        context.moveTo(x, y);
+        context.lineTo(
+          x + Math.cos(sweep + side * Math.PI) * radius,
+          y + Math.sin(sweep + side * Math.PI) * radius,
+        );
+        context.strokeStyle = rgba(palette.foam, intensity * 0.32);
+        context.stroke();
+      });
+
+      const beacon = Math.pow((Math.sin(elapsed * 0.0014) + 1) / 2, 7);
+      centers.forEach(({ x, y }) => {
+        const glow = context.createRadialGradient(x, y, 0, x, y, 42);
+        glow.addColorStop(0, rgba(palette.signal, intensity * beacon * 0.42));
+        glow.addColorStop(1, rgba(palette.signal, 0));
+        context.fillStyle = glow;
+        context.fillRect(x - 42, y - 42, 84, 84);
+      });
+
+      context.fillStyle = rgba(palette.foam, intensity * 0.18);
+      for (let y = 42; y < height; y += 76) {
+        context.beginPath();
+        context.arc(18, y, 1.3, 0, Math.PI * 2);
+        context.fill();
+        context.beginPath();
+        context.arc(width - 18, y + 28, 1.3, 0, Math.PI * 2);
+        context.fill();
+      }
+      context.restore();
+    }
+
+    function drawStorm(elapsed: number, palette: StormPalette) {
+      const bounds = pageBounds();
+      context.save();
+      clipOutsideBook(bounds);
+
+      const darkness = context.createLinearGradient(0, 0, 0, height);
+      darkness.addColorStop(0, rgba(palette.cloud, intensity * 0.32));
+      darkness.addColorStop(1, rgba(palette.shadow, intensity * 0.46));
+      context.fillStyle = darkness;
+      context.fillRect(0, 0, width, height);
+
+      context.filter = `blur(${performanceMode ? 18 : 30}px)`;
+      for (let cloud = 0; cloud < (performanceMode ? 5 : 9); cloud += 1) {
+        const side = cloud % 2 ? 1 : -1;
+        const sideWidth = side < 0 ? bounds.left : width - bounds.right;
+        const xBase = side < 0 ? 0 : bounds.right;
+        const x =
+          xBase +
+          ((elapsed * (0.003 + cloud * 0.0002) + cloud * 97) % Math.max(80, sideWidth));
+        const y = height * (0.12 + (cloud % 4) * 0.16);
+        const radius = 95 + (cloud % 3) * 34;
+        const cloudGlow = context.createRadialGradient(x, y, 0, x, y, radius);
+        cloudGlow.addColorStop(0, rgba(palette.cloud, intensity * 0.2));
+        cloudGlow.addColorStop(1, rgba(palette.shadow, 0));
+        context.fillStyle = cloudGlow;
+        context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+      }
+      context.filter = "none";
+
+      const cycleDuration = 8_700;
+      const cycle = elapsed % cycleDuration;
+      const flash =
+        cycle < 110
+          ? 1 - cycle / 110
+          : cycle > 190 && cycle < 310
+            ? 0.62 * (1 - (cycle - 190) / 120)
+            : 0;
+
+      if (flash > 0.01) {
+        context.fillStyle = rgba(palette.flash, intensity * flash * 0.24);
+        context.fillRect(0, 0, width, height);
+
+        const random = seededRandom(Math.floor(elapsed / cycleDuration) + 0x73746f72);
+        const leftSide = random() > 0.5;
+        const regionLeft = leftSide ? 12 : bounds.right + 12;
+        const regionWidth = Math.max(24, leftSide ? bounds.left - 24 : width - bounds.right - 24);
+        let x = regionLeft + random() * regionWidth;
+        let y = -10;
+        context.strokeStyle = rgba(palette.flash, intensity * flash * 0.78);
+        context.lineWidth = 1.1;
+        context.shadowBlur = 12;
+        context.shadowColor = rgba(palette.glow, intensity * flash * 0.8);
+        context.beginPath();
+        context.moveTo(x, y);
+        for (let segment = 0; segment < 7; segment += 1) {
+          x += (random() - 0.5) * 28;
+          y += height * (0.055 + random() * 0.025);
+          context.lineTo(x, y);
+        }
+        context.stroke();
+        context.shadowBlur = 0;
+      }
+
+      context.restore();
+    }
+
     function render(now: number) {
       frameId = 0;
       if (document.hidden || reducedMotion.matches) {
@@ -501,12 +793,18 @@ export function AmbientBackdrop() {
       context.clearRect(0, 0, width, height);
       context.globalAlpha = effectsIntensity;
       const palette = PALETTES[theme];
+      const marinePalette = MARINE_PALETTES[theme];
+      const stormPalette = STORM_PALETTES[theme];
       const elapsed = now - effectStartedAt;
       if (currentEffect === "fireflies") drawFireflies(elapsed, palette);
       if (currentEffect === "rain") drawRain(elapsed, palette);
       if (currentEffect === "mist" || currentEffect === "breeze") {
         drawMist(elapsed, palette, currentEffect === "breeze");
       }
+      if (currentEffect === "harbor") drawHarbor(elapsed, marinePalette);
+      if (currentEffect === "underwater") drawUnderwater(elapsed, marinePalette);
+      if (currentEffect === "submarine") drawSubmarine(elapsed, marinePalette);
+      if (currentEffect === "storm") drawStorm(elapsed, stormPalette);
       context.globalAlpha = 1;
 
       if (isPlaying || intensity > 0.002 || requestedEffect !== currentEffect) {

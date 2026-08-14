@@ -1,15 +1,10 @@
 import { z } from "zod";
+import { VISUAL_EFFECTS } from "@/audio/effects";
 
 export const MAX_SOUNDSCAPE_LAYERS = 6;
 export const MAX_AUDIO_FILE_BYTES = 40 * 1024 * 1024;
 
-export const visualEffectSchema = z.enum([
-  "none",
-  "fireflies",
-  "rain",
-  "mist",
-  "breeze",
-]);
+export const visualEffectSchema = z.enum(VISUAL_EFFECTS);
 
 const optionalText = (maximum: number) =>
   z

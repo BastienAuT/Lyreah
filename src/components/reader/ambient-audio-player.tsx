@@ -7,8 +7,16 @@ import {
   DEFAULT_EFFECTS_INTENSITY,
   parseAudioPreferences,
 } from "@/audio/preferences";
+import type { VisualEffect } from "@/audio/effects";
 
-type SoundscapeLayer = { id: string; title: string; url: string; volume: number };
+type SoundscapeLayer = {
+  id: string;
+  intervalSeconds?: number;
+  startDelaySeconds?: number;
+  title: string;
+  url: string;
+  volume: number;
+};
 type Soundscape = {
   id: string;
   title: string;
@@ -16,7 +24,7 @@ type Soundscape = {
   attribution: string | null;
   licenseName: string;
   licenseSourceUrl: string | null;
-  visualEffect: "none" | "fireflies" | "rain" | "mist" | "breeze";
+  visualEffect: VisualEffect;
   layers: SoundscapeLayer[];
 };
 type SoundscapeResponse = {
@@ -155,6 +163,41 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
   }, [activeSoundscape, effectsIntensity, isPlaying, performanceMode]);
 
   useEffect(() => {
+    if (!activeSoundscape || !isPlaying) return;
+
+    const scheduledLayers = activeSoundscape.layers
+      .filter((layer) => layer.intervalSeconds)
+      .map((layer) => {
+        const audio = audioRefs.current.get(audioKey(activeSoundscape.id, layer.id));
+        if (!audio || !layer.intervalSeconds) return null;
+        let timer = 0;
+
+        const playOneShot = () => {
+          audio.currentTime = 0;
+          void audio.play().catch(() => setError("Un son ponctuel n’a pas pu être lu"));
+          timer = window.setTimeout(playOneShot, layer.intervalSeconds! * 1_000);
+        };
+
+        timer = window.setTimeout(
+          playOneShot,
+          (layer.startDelaySeconds ?? layer.intervalSeconds * 0.55) * 1_000,
+        );
+        return { audio, stop: () => window.clearTimeout(timer) };
+      })
+      .filter((scheduled): scheduled is { audio: HTMLAudioElement; stop: () => void } =>
+        Boolean(scheduled),
+      );
+
+    return () => {
+      scheduledLayers.forEach(({ audio, stop }) => {
+        stop();
+        audio.pause();
+        audio.currentTime = 0;
+      });
+    };
+  }, [activeSoundscape, isPlaying]);
+
+  useEffect(() => {
     if (!isExpanded) return;
 
     function closeOnOutsideClick(event: PointerEvent) {
@@ -177,6 +220,7 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
   const togglePlayback = useCallback(async () => {
     if (!activeSoundscape) return;
     const audioElements = activeSoundscape.layers
+      .filter((layer) => !layer.intervalSeconds)
       .map((layer) => audioRefs.current.get(audioKey(activeSoundscape.id, layer.id)))
       .filter((audio): audio is HTMLAudioElement => Boolean(audio));
 
@@ -210,9 +254,11 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
       if (!isPlaying) return;
 
       const nextAudioElements = nextSoundscape.layers
+        .filter((layer) => !layer.intervalSeconds)
         .map((layer) => audioRefs.current.get(audioKey(nextSoundscape.id, layer.id)))
         .filter((audio): audio is HTMLAudioElement => Boolean(audio));
       const previousAudioElements = previousSoundscape.layers
+        .filter((layer) => !layer.intervalSeconds)
         .map((layer) => audioRefs.current.get(audioKey(previousSoundscape.id, layer.id)))
         .filter((audio): audio is HTMLAudioElement => Boolean(audio));
 
@@ -259,7 +305,7 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
         soundscape.layers.map((layer) => (
           <audio
             key={audioKey(soundscape.id, layer.id)}
-            loop
+            loop={!layer.intervalSeconds}
             preload="none"
             ref={(audio) => {
               const key = audioKey(soundscape.id, layer.id);

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { VISUAL_EFFECTS } from "./effects";
 
 const safeAudioFile = z
   .string()
@@ -20,9 +21,7 @@ const safeAudioFile = z
 export const soundscapeManifestSchema = z
   .object({
     version: z.literal(1),
-    visualEffect: z
-      .enum(["none", "fireflies", "rain", "mist", "breeze"])
-      .default("none"),
+    visualEffect: z.enum(VISUAL_EFFECTS).default("none"),
     layers: z
       .array(
         z.object({
@@ -30,6 +29,8 @@ export const soundscapeManifestSchema = z
           title: z.string().trim().min(1).max(100),
           file: safeAudioFile,
           volume: z.number().min(0).max(1).default(1),
+          intervalSeconds: z.number().min(8).max(120).optional(),
+          startDelaySeconds: z.number().min(0).max(120).optional(),
         }),
       )
       .min(1)
@@ -45,6 +46,16 @@ export const soundscapeManifestSchema = z
         path: ["layers"],
       });
     }
+
+    manifest.layers.forEach((layer, index) => {
+      if (layer.startDelaySeconds !== undefined && layer.intervalSeconds === undefined) {
+        context.addIssue({
+          code: "custom",
+          message: "Un délai de départ nécessite un intervalle de répétition.",
+          path: ["layers", index, "startDelaySeconds"],
+        });
+      }
+    });
   });
 
 export type SoundscapeManifest = z.infer<typeof soundscapeManifestSchema>;
