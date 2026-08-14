@@ -2,9 +2,11 @@ import Link from "next/link";
 import { requireAdminPage } from "@/admin/access";
 import { getRecentBookImports } from "@/admin/imports";
 import { canPublishBook } from "@/admin/publication-rules";
+import { getAdminSoundscapeOverview } from "@/admin/soundscapes";
 import { BookImportForm } from "@/components/admin/book-import-form";
 import { PublicationControl } from "@/components/admin/publication-control";
 import { RetryRenditionButton } from "@/components/admin/retry-rendition-button";
+import { SoundscapeManager } from "@/components/admin/soundscape-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +19,10 @@ const statusLabels = {
 
 export default async function AdminPage() {
   const { user } = await requireAdminPage();
-  const imports = await getRecentBookImports();
+  const [imports, soundscapeOverview] = await Promise.all([
+    getRecentBookImports(),
+    getAdminSoundscapeOverview(),
+  ]);
 
   return (
     <main className="admin-shell">
@@ -84,6 +89,21 @@ export default async function AdminPage() {
           ) : (
             <p className="admin-empty">Aucun import pour le moment.</p>
           )}
+        </section>
+
+        <section className="admin-imports admin-soundscapes">
+          <div className="admin-section-title">
+            <p className="eyebrow">Immersion</p>
+            <h2>Ambiances sonores</h2>
+            <p>
+              Associe plusieurs pistes à un livre, choisis son effet visuel et
+              définis l’ambiance proposée par défaut dans la liseuse.
+            </p>
+          </div>
+          <SoundscapeManager
+            books={soundscapeOverview.books}
+            soundscapes={soundscapeOverview.soundscapes}
+          />
         </section>
       </div>
     </main>

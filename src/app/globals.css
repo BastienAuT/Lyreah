@@ -2981,10 +2981,214 @@ h1 {
   background: rgba(255, 253, 251, 0.66);
 }
 
+.admin-soundscapes .admin-section-title > p:last-child {
+  max-width: 720px;
+  margin-top: -14px;
+  color: var(--muted-foreground);
+  line-height: 1.65;
+}
+
+.admin-soundscape-manager {
+  display: grid;
+  gap: 34px;
+}
+
+.admin-soundscape-manager > .admin-import-form {
+  padding: clamp(24px, 4vw, 42px);
+  border: 1px solid rgba(109, 99, 136, 0.16);
+  border-radius: 26px;
+  background: rgba(255, 253, 251, 0.82);
+  box-shadow: 0 24px 70px rgba(52, 49, 67, 0.08);
+}
+
+.admin-soundscapes .admin-form-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-import-form .admin-check-field,
+.admin-soundscape-card .admin-check-field {
+  display: inline-flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.admin-import-form .admin-check-field input,
+.admin-soundscape-card .admin-check-field input {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  accent-color: var(--forest);
+}
+
+.admin-import-form .admin-check-field > span,
+.admin-soundscape-card .admin-check-field > span {
+  color: inherit;
+  font-size: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.admin-audio-layers {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-audio-layers > div {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.8fr) minmax(180px, 1.3fr) minmax(150px, 1fr);
+  gap: 18px;
+  align-items: end;
+  padding: 15px 17px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: rgba(222, 216, 238, 0.11);
+}
+
+.admin-audio-layers > div > span {
+  overflow: hidden;
+  padding-bottom: 14px;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-audio-layers input[type="range"] {
+  padding-inline: 0;
+  accent-color: var(--forest);
+}
+
+.admin-soundscape-list {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-soundscape-card {
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 253, 251, 0.76);
+}
+
+.admin-soundscape-card__heading,
+.admin-soundscape-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.admin-soundscape-card__heading > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-soundscape-card__heading > div:first-child span {
+  color: var(--forest-light);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.admin-soundscape-card__heading > div:first-child strong {
+  font-family: "Cormorant Garamond Variable", Georgia, serif;
+  font-size: 1.45rem;
+}
+
+.admin-soundscape-badges {
+  display: flex;
+  gap: 7px;
+}
+
+.admin-soundscape-badges span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(222, 216, 238, 0.58);
+  color: #5d536f;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-soundscape-badges span.is-active {
+  background: rgba(207, 225, 212, 0.7);
+  color: #3d654e;
+}
+
+.admin-soundscape-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.admin-soundscape-card label > span {
+  color: #4e485e;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.admin-soundscape-card input,
+.admin-soundscape-card select,
+.admin-soundscape-card textarea {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid rgba(109, 99, 136, 0.2);
+  border-radius: 11px;
+  outline: 0;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--ink);
+  font: inherit;
+}
+
+.admin-soundscape-card__footer > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  align-items: center;
+}
+
+.admin-soundscape-card__footer small {
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+}
+
+.admin-soundscape-card__footer > button {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--forest);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--forest);
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.admin-soundscape-card__footer > button:hover:not(:disabled) {
+  background: var(--forest);
+  color: white;
+}
+
+.admin-soundscape-card__footer > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 @media (max-width: 720px) {
   .admin-header,
   .admin-form-grid,
-  .admin-file-grid {
+  .admin-file-grid,
+  .admin-soundscapes .admin-form-grid,
+  .admin-audio-layers > div {
     grid-template-columns: 1fr;
   }
 
@@ -2998,6 +3202,12 @@ h1 {
 
   .admin-submit-row {
     align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-soundscape-card__heading,
+  .admin-soundscape-card__footer {
+    align-items: flex-start;
     flex-direction: column;
   }
 }
