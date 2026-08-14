@@ -213,8 +213,10 @@ export function EpubReader({
             margin: "0 auto",
             padding: "7% 9% 12%",
           },
+          "p, li, blockquote": {
+            "font-size": "1em !important",
+          },
           p: {
-            "font-size": "1rem",
             margin: "0 0 1.15em",
           },
           h1: {
