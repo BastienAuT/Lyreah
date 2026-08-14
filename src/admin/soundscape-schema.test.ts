@@ -51,6 +51,12 @@ describe("soundscape admin schemas", () => {
         visualEffect: "snow",
       }).success,
     ).toBe(false);
+    expect(
+      prepareSoundscapeSchema.safeParse({
+        ...validPrepareInput,
+        visualEffect: "harbor",
+      }).success,
+    ).toBe(true);
   });
 });
 

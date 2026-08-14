@@ -275,6 +275,7 @@ button {
     radial-gradient(circle at 88% 10%, rgba(241, 214, 220, 0.78), transparent 24rem),
     radial-gradient(circle at 6% 82%, rgba(217, 231, 239, 0.72), transparent 27rem),
     linear-gradient(128deg, #fffaf5 0%, #f7f3fb 54%, #edf6f1 100%);
+  transition: background 1.25s ease;
 }
 
 .reader-shell__nav {
@@ -406,6 +407,78 @@ html[data-reader-theme="night"] .reader-shell {
     radial-gradient(circle at 88% 10%, rgba(112, 79, 118, 0.28), transparent 27rem),
     radial-gradient(circle at 6% 82%, rgba(57, 83, 94, 0.32), transparent 30rem),
     linear-gradient(128deg, #17151d, #201d28 56%, #182322);
+}
+
+html[data-soundscape-playing="true"][data-soundscape-effect="harbor"] .reader-shell {
+  background:
+    radial-gradient(circle at 7% 24%, rgba(203, 226, 229, 0.88), transparent 26rem),
+    radial-gradient(circle at 92% 78%, rgba(155, 195, 204, 0.52), transparent 30rem),
+    linear-gradient(132deg, #f7f3ed, #e7eff0 52%, #d9e8e7);
+}
+
+html[data-soundscape-playing="true"][data-soundscape-effect="underwater"] .reader-shell {
+  background:
+    radial-gradient(circle at 8% -4%, rgba(155, 221, 215, 0.56), transparent 30rem),
+    radial-gradient(circle at 94% 30%, rgba(66, 144, 158, 0.38), transparent 28rem),
+    linear-gradient(142deg, #e8f1ed, #c9e1df 48%, #9fc4c7);
+}
+
+html[data-soundscape-playing="true"][data-soundscape-effect="submarine"] .reader-shell {
+  background:
+    radial-gradient(circle at 10% 55%, rgba(68, 126, 134, 0.34), transparent 24rem),
+    radial-gradient(circle at 90% 46%, rgba(169, 86, 72, 0.18), transparent 22rem),
+    linear-gradient(135deg, #dce7e4, #aebfc0 52%, #7f999d);
+}
+
+html[data-soundscape-playing="true"][data-soundscape-effect="storm"] .reader-shell {
+  background:
+    radial-gradient(circle at 9% 12%, rgba(157, 146, 180, 0.42), transparent 25rem),
+    radial-gradient(circle at 93% 78%, rgba(74, 69, 91, 0.44), transparent 29rem),
+    linear-gradient(138deg, #ded9e2, #aaa4b4 50%, #777383);
+}
+
+html[data-reader-theme="sepia"][data-soundscape-playing="true"][data-soundscape-effect="harbor"] .reader-shell,
+html[data-reader-theme="sepia"][data-soundscape-playing="true"][data-soundscape-effect="underwater"] .reader-shell {
+  background:
+    radial-gradient(circle at 8% 18%, rgba(188, 199, 178, 0.62), transparent 26rem),
+    radial-gradient(circle at 92% 80%, rgba(133, 163, 159, 0.4), transparent 29rem),
+    linear-gradient(134deg, #e9dfcb, #c8c5ae 53%, #aebcb0);
+}
+
+html[data-reader-theme="sepia"][data-soundscape-playing="true"][data-soundscape-effect="submarine"] .reader-shell,
+html[data-reader-theme="sepia"][data-soundscape-playing="true"][data-soundscape-effect="storm"] .reader-shell {
+  background:
+    radial-gradient(circle at 9% 15%, rgba(152, 124, 104, 0.46), transparent 25rem),
+    radial-gradient(circle at 92% 78%, rgba(91, 80, 77, 0.42), transparent 29rem),
+    linear-gradient(138deg, #d8c7ad, #a79682 52%, #756d68);
+}
+
+html[data-reader-theme="night"][data-soundscape-playing="true"][data-soundscape-effect="harbor"] .reader-shell {
+  background:
+    radial-gradient(circle at 7% 24%, rgba(53, 104, 117, 0.48), transparent 28rem),
+    radial-gradient(circle at 92% 76%, rgba(22, 65, 78, 0.56), transparent 30rem),
+    linear-gradient(136deg, #101a20, #13272e 52%, #0b2025);
+}
+
+html[data-reader-theme="night"][data-soundscape-playing="true"][data-soundscape-effect="underwater"] .reader-shell {
+  background:
+    radial-gradient(circle at 8% -6%, rgba(45, 130, 137, 0.42), transparent 31rem),
+    radial-gradient(circle at 94% 34%, rgba(20, 77, 94, 0.5), transparent 29rem),
+    linear-gradient(144deg, #06171d, #082b34 48%, #061d28);
+}
+
+html[data-reader-theme="night"][data-soundscape-playing="true"][data-soundscape-effect="submarine"] .reader-shell {
+  background:
+    radial-gradient(circle at 9% 48%, rgba(24, 86, 96, 0.44), transparent 25rem),
+    radial-gradient(circle at 91% 48%, rgba(155, 47, 43, 0.2), transparent 22rem),
+    linear-gradient(136deg, #071319, #10252a 52%, #09171b);
+}
+
+html[data-reader-theme="night"][data-soundscape-playing="true"][data-soundscape-effect="storm"] .reader-shell {
+  background:
+    radial-gradient(circle at 9% 12%, rgba(80, 65, 112, 0.42), transparent 27rem),
+    radial-gradient(circle at 92% 78%, rgba(38, 33, 58, 0.58), transparent 31rem),
+    linear-gradient(138deg, #100e18, #1d1928 50%, #0b1018);
 }
 
 html[data-reader-theme="night"] .reader-shell__nav,

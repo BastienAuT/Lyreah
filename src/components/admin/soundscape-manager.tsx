@@ -7,8 +7,8 @@ import {
   MAX_AUDIO_FILE_BYTES,
   MAX_SOUNDSCAPE_LAYERS,
 } from "@/admin/soundscape-schema";
+import type { VisualEffect } from "@/audio/effects";
 
-type VisualEffect = "none" | "fireflies" | "rain" | "mist" | "breeze";
 type BookOption = { id: string; title: string };
 type SoundscapeItem = {
   id: string;
@@ -49,6 +49,10 @@ const effectOptions: Array<{ value: VisualEffect; label: string }> = [
   { value: "rain", label: "Pluie" },
   { value: "mist", label: "Brume" },
   { value: "breeze", label: "Brise" },
+  { value: "harbor", label: "Port brumeux" },
+  { value: "underwater", label: "Sous l’eau" },
+  { value: "submarine", label: "Intérieur de sous-marin" },
+  { value: "storm", label: "Orage gothique" },
 ];
 
 function fileMetadata(file: File) {

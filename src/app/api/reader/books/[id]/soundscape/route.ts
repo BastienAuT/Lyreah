@@ -55,6 +55,8 @@ export async function GET(
         const layers = await Promise.all(
           manifest.layers.map(async (layer) => ({
             id: layer.id,
+            intervalSeconds: layer.intervalSeconds,
+            startDelaySeconds: layer.startDelaySeconds,
             title: layer.title,
             volume: layer.volume,
             url: await createSignedReadUrl(
