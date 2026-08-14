@@ -20,6 +20,9 @@ const safeAudioFile = z
 export const soundscapeManifestSchema = z
   .object({
     version: z.literal(1),
+    visualEffect: z
+      .enum(["none", "fireflies", "rain", "mist", "breeze"])
+      .default("none"),
     layers: z
       .array(
         z.object({

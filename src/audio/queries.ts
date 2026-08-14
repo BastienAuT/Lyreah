@@ -4,8 +4,8 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { getDatabase } from "@/db";
 import { booksToSoundscapes, soundscapes } from "@/db/schema";
 
-export async function getDefaultSoundscapeForBook(bookId: string) {
-  const [soundscape] = await getDatabase()
+export async function getSoundscapesForBook(bookId: string) {
+  return getDatabase()
     .select({
       id: soundscapes.id,
       title: soundscapes.title,
@@ -14,6 +14,7 @@ export async function getDefaultSoundscapeForBook(bookId: string) {
       attribution: soundscapes.attribution,
       licenseName: soundscapes.licenseName,
       licenseSourceUrl: soundscapes.licenseSourceUrl,
+      isDefault: booksToSoundscapes.isDefault,
     })
     .from(booksToSoundscapes)
     .innerJoin(soundscapes, eq(soundscapes.id, booksToSoundscapes.soundscapeId))
@@ -23,8 +24,5 @@ export async function getDefaultSoundscapeForBook(bookId: string) {
         eq(soundscapes.isActive, true),
       ),
     )
-    .orderBy(desc(booksToSoundscapes.isDefault), asc(soundscapes.title))
-    .limit(1);
-
-  return soundscape ?? null;
+    .orderBy(desc(booksToSoundscapes.isDefault), asc(soundscapes.title));
 }

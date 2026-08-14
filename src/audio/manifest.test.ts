@@ -6,6 +6,7 @@ describe("parseSoundscapeManifest", () => {
     const manifest = parseSoundscapeManifest(
       JSON.stringify({
         version: 1,
+        visualEffect: "rain",
         layers: [
           { id: "rain", title: "Pluie douce", file: "layers/rain.mp3", volume: 0.65 },
           { id: "leaves", title: "Feuillage", file: "leaves.ogg" },
@@ -15,6 +16,18 @@ describe("parseSoundscapeManifest", () => {
 
     expect(manifest.layers).toHaveLength(2);
     expect(manifest.layers[1]?.volume).toBe(1);
+    expect(manifest.visualEffect).toBe("rain");
+  });
+
+  test("keeps existing manifests compatible without a visual effect", () => {
+    const manifest = parseSoundscapeManifest(
+      JSON.stringify({
+        version: 1,
+        layers: [{ id: "wind", title: "Vent", file: "wind.ogg" }],
+      }),
+    );
+
+    expect(manifest.visualEffect).toBe("none");
   });
 
   test("rejects unsafe files and duplicate layer identifiers", () => {

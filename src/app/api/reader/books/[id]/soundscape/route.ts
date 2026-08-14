@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/auth/session";
 import { parseSoundscapeManifest } from "@/audio/manifest";
-import { getDefaultSoundscapeForBook } from "@/audio/queries";
+import { getSoundscapesForBook } from "@/audio/queries";
 import { getReadableBookById } from "@/reader/queries";
 import {
   createNestedStoragePath,
@@ -28,47 +28,67 @@ export async function GET(
     return Response.json({ error: "Livre introuvable." }, { status: 404 });
   }
 
-  const soundscape = await getDefaultSoundscapeForBook(book.id);
+  const soundscapes = await getSoundscapesForBook(book.id);
 
-  if (!soundscape) {
+  if (!soundscapes.length) {
     return Response.json(
-      { soundscape: null },
+      { defaultSoundscapeId: null, soundscape: null, soundscapes: [] },
       { headers: { "Cache-Control": "private, no-store" } },
     );
   }
 
   try {
-    const soundscapePrefix = createStorageResourcePrefix("audio", soundscape.id);
+    const preparedSoundscapes = await Promise.all(
+      soundscapes.map(async (soundscape) => {
+        const soundscapePrefix = createStorageResourcePrefix("audio", soundscape.id);
 
-    if (!soundscape.manifestObjectKey.startsWith(`${soundscapePrefix}/`)) {
-      throw new Error("Soundscape manifest is outside its storage prefix.");
-    }
+        if (!soundscape.manifestObjectKey.startsWith(`${soundscapePrefix}/`)) {
+          throw new Error("Soundscape manifest is outside its storage prefix.");
+        }
 
-    const manifestBuffer = await downloadStorageObject(soundscape.manifestObjectKey);
-    const manifest = parseSoundscapeManifest(new TextDecoder().decode(manifestBuffer));
-    const layers = await Promise.all(
-      manifest.layers.map(async (layer) => ({
-        id: layer.id,
-        title: layer.title,
-        volume: layer.volume,
-        url: await createSignedReadUrl(
-          createNestedStoragePath("audio", soundscape.id, layer.file),
-          SIGNED_URL_LIFETIME_SECONDS,
-        ),
-      })),
-    );
+        const manifestBuffer = await downloadStorageObject(
+          soundscape.manifestObjectKey,
+        );
+        const manifest = parseSoundscapeManifest(
+          new TextDecoder().decode(manifestBuffer),
+        );
+        const layers = await Promise.all(
+          manifest.layers.map(async (layer) => ({
+            id: layer.id,
+            title: layer.title,
+            volume: layer.volume,
+            url: await createSignedReadUrl(
+              createNestedStoragePath("audio", soundscape.id, layer.file),
+              SIGNED_URL_LIFETIME_SECONDS,
+            ),
+          })),
+        );
 
-    return Response.json(
-      {
-        soundscape: {
+        return {
           id: soundscape.id,
           title: soundscape.title,
           description: soundscape.description,
           attribution: soundscape.attribution,
           licenseName: soundscape.licenseName,
           licenseSourceUrl: soundscape.licenseSourceUrl,
+          visualEffect: manifest.visualEffect,
           layers,
-        },
+        };
+      }),
+    );
+    const defaultSoundscapeId =
+      soundscapes.find((soundscape) => soundscape.isDefault)?.id ??
+      preparedSoundscapes[0]?.id ??
+      null;
+
+    return Response.json(
+      {
+        defaultSoundscapeId,
+        soundscape:
+          preparedSoundscapes.find(
+            (soundscape) => soundscape.id === defaultSoundscapeId,
+          ) ?? null,
+        soundscapes: preparedSoundscapes,
         expiresIn: SIGNED_URL_LIFETIME_SECONDS,
       },
       { headers: { "Cache-Control": "private, no-store" } },
