@@ -10,7 +10,41 @@ import { createNestedStoragePath } from "../src/storage/paths";
 
 const SAMPLE_RATE = 22_050;
 const DURATION_SECONDS = 24;
-const SOUNDSCAPE_TITLE = "Clairière nocturne — démo";
+type DemoMood = "night" | "rain" | "dawn";
+
+const DEMO_SOUNDSCAPES: Array<{
+  description: string;
+  file: string;
+  isDefault: boolean;
+  layerTitle: string;
+  mood: DemoMood;
+  title: string;
+}> = [
+  {
+    title: "Clairière nocturne — démo",
+    description: "Une brise légère ponctuée de chants nocturnes.",
+    file: "night-forest.wav",
+    layerTitle: "Brise et lucioles",
+    mood: "night",
+    isDefault: true,
+  },
+  {
+    title: "Pluie dans les fougères — démo",
+    description: "Une pluie régulière et douce sous un feuillage dense.",
+    file: "soft-rain.wav",
+    layerTitle: "Pluie et feuillage",
+    mood: "rain",
+    isDefault: false,
+  },
+  {
+    title: "Aube brumeuse — démo",
+    description: "Un souffle calme accompagné des premiers oiseaux.",
+    file: "misty-dawn.wav",
+    layerTitle: "Vent matinal et oiseaux",
+    mood: "dawn",
+    isDefault: false,
+  },
+];
 
 function requireEnvironmentVariable(name: string) {
   const value = process.env[name];
@@ -56,7 +90,7 @@ function writeAscii(view: DataView, offset: number, value: string) {
   }
 }
 
-function createNightForestWave() {
+function createAmbientWave(mood: DemoMood) {
   const sampleCount = SAMPLE_RATE * DURATION_SECONDS;
   const bytesPerSample = 2;
   const buffer = new ArrayBuffer(44 + sampleCount * bytesPerSample);
@@ -76,9 +110,14 @@ function createNightForestWave() {
   writeAscii(view, 36, "data");
   view.setUint32(40, sampleCount * bytesPerSample, true);
 
-  let seed = 0x6c797265;
+  let seed = mood === "rain" ? 0x7261696e : mood === "dawn" ? 0x6461776e : 0x6c797265;
   let breeze = 0;
-  const chirps = [3.2, 7.8, 13.4, 18.7, 22.1];
+  const events =
+    mood === "rain"
+      ? [1.3, 4.8, 8.1, 11.7, 15.2, 19.4, 22.3]
+      : mood === "dawn"
+        ? [2.4, 5.1, 9.8, 14.6, 17.2, 21.3]
+        : [3.2, 7.8, 13.4, 18.7, 22.1];
 
   function random() {
     seed ^= seed << 13;
@@ -92,14 +131,24 @@ function createNightForestWave() {
     const whiteNoise = random() * 2 - 1;
     breeze = (breeze + whiteNoise * 0.018) / 1.018;
     const windEnvelope = 0.52 + 0.2 * Math.sin(time * 0.31);
-    let sample = breeze * 2.8 * windEnvelope;
+    let sample =
+      mood === "rain"
+        ? whiteNoise * 0.018 + breeze * 1.9
+        : mood === "dawn"
+          ? breeze * 1.7 * windEnvelope + Math.sin(2 * Math.PI * 110 * time) * 0.008
+          : breeze * 2.8 * windEnvelope;
 
-    for (const start of chirps) {
-      const chirpTime = time - start;
+    for (const start of events) {
+      const eventTime = time - start;
 
-      if (chirpTime >= 0 && chirpTime < 0.22) {
-        const envelope = Math.sin((Math.PI * chirpTime) / 0.22) ** 2;
-        sample += Math.sin(2 * Math.PI * (2_100 + chirpTime * 900) * chirpTime) * envelope * 0.055;
+      if (eventTime >= 0 && eventTime < 0.22) {
+        const envelope = Math.sin((Math.PI * eventTime) / 0.22) ** 2;
+        const frequency = mood === "rain" ? 720 : mood === "dawn" ? 2_850 : 2_100;
+        const strength = mood === "rain" ? 0.025 : mood === "dawn" ? 0.065 : 0.055;
+        sample +=
+          Math.sin(2 * Math.PI * (frequency + eventTime * 900) * eventTime) *
+          envelope *
+          strength;
       }
     }
 
@@ -122,71 +171,77 @@ if (!book) {
   throw new Error(`Livre introuvable : ${bookSlug}`);
 }
 
-const [existingSoundscape] = await database
-  .select({ id: soundscapes.id })
-  .from(soundscapes)
-  .where(eq(soundscapes.title, SOUNDSCAPE_TITLE))
-  .limit(1);
-const soundscapeId = existingSoundscape?.id ?? crypto.randomUUID();
-const audioPath = createNestedStoragePath(
-  "audio",
-  soundscapeId,
-  "night-forest.wav",
-);
-const manifestPath = createNestedStoragePath(
-  "audio",
-  soundscapeId,
-  "manifest.json",
-);
-const manifest = {
-  version: 1,
-  layers: [
-    {
-      id: "night-forest",
-      title: "Brise et lucioles",
-      file: "night-forest.wav",
-      volume: 0.72,
-    },
-  ],
-};
-
-await uploadStorageObject(audioPath, createNightForestWave(), "audio/wav");
-await uploadStorageObject(
-  manifestPath,
-  new TextEncoder().encode(JSON.stringify(manifest, null, 2)),
-  "application/json",
-);
-
-if (existingSoundscape) {
-  await database
-    .update(soundscapes)
-    .set({
-      description: "Une brise légère ponctuée de chants nocturnes.",
-      manifestObjectKey: manifestPath,
-      updatedAt: new Date(),
-    })
-    .where(eq(soundscapes.id, soundscapeId));
-} else {
-  await database.insert(soundscapes).values({
-    id: soundscapeId,
-    title: SOUNDSCAPE_TITLE,
-    description: "Une brise légère ponctuée de chants nocturnes.",
-    manifestObjectKey: manifestPath,
-    attribution: "Ambiance de développement générée par Lyreah",
-    licenseName: "Création originale de démonstration",
-  });
-}
-
 await database
   .update(booksToSoundscapes)
   .set({ isDefault: false })
   .where(eq(booksToSoundscapes.bookId, book.id));
-await database
-  .insert(booksToSoundscapes)
-  .values({ bookId: book.id, soundscapeId, isDefault: true })
-  .onConflictDoUpdate({
-    target: [booksToSoundscapes.bookId, booksToSoundscapes.soundscapeId],
-    set: { isDefault: true },
-  });
 
-console.log(`✓ Ambiance « ${SOUNDSCAPE_TITLE} » associée à « ${book.title} »`);
+for (const demo of DEMO_SOUNDSCAPES) {
+  const [existingSoundscape] = await database
+    .select({ id: soundscapes.id })
+    .from(soundscapes)
+    .where(eq(soundscapes.title, demo.title))
+    .limit(1);
+  const soundscapeId = existingSoundscape?.id ?? crypto.randomUUID();
+  const audioPath = createNestedStoragePath("audio", soundscapeId, demo.file);
+  const manifestPath = createNestedStoragePath(
+    "audio",
+    soundscapeId,
+    "manifest.json",
+  );
+  const manifest = {
+    version: 1,
+    visualEffect:
+      demo.mood === "night"
+        ? "fireflies"
+        : demo.mood === "rain"
+          ? "rain"
+          : "mist",
+    layers: [
+      {
+        id: demo.mood,
+        title: demo.layerTitle,
+        file: demo.file,
+        volume: 0.72,
+      },
+    ],
+  };
+
+  await uploadStorageObject(audioPath, createAmbientWave(demo.mood), "audio/wav");
+  await uploadStorageObject(
+    manifestPath,
+    new TextEncoder().encode(JSON.stringify(manifest, null, 2)),
+    "application/json",
+  );
+
+  if (existingSoundscape) {
+    await database
+      .update(soundscapes)
+      .set({
+        description: demo.description,
+        manifestObjectKey: manifestPath,
+        isActive: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(soundscapes.id, soundscapeId));
+  } else {
+    await database.insert(soundscapes).values({
+      id: soundscapeId,
+      title: demo.title,
+      description: demo.description,
+      manifestObjectKey: manifestPath,
+      attribution: "Ambiance de développement générée par Lyreah",
+      licenseName: "Création originale de démonstration",
+    });
+  }
+
+  await database
+    .insert(booksToSoundscapes)
+    .values({ bookId: book.id, soundscapeId, isDefault: demo.isDefault })
+    .onConflictDoUpdate({
+      target: [booksToSoundscapes.bookId, booksToSoundscapes.soundscapeId],
+      set: { isDefault: demo.isDefault },
+    });
+
+  console.log(`✓ Ambiance « ${demo.title} » associée à « ${book.title} »`);
+}
