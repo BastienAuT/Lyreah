@@ -4,7 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type Book from "epubjs/types/book";
 import type Rendition from "epubjs/types/rendition";
 import type { Location } from "epubjs/types/rendition";
+import {
+  DEFAULT_READER_PREFERENCES,
+  parseReaderPreferences,
+  READER_PREFERENCES_STORAGE_KEY,
+  type ReaderPreferences,
+} from "@/reader/preferences";
 import { AmbientAudioPlayer } from "./ambient-audio-player";
+import { ReaderAppearancePanel } from "./reader-appearance-panel";
 
 type ReaderAccess = { url: string; expiresIn: number };
 type SavedProgress = {
@@ -12,6 +19,37 @@ type SavedProgress = {
   percentageBasisPoints: number;
 };
 type ProgressResponse = { progress: SavedProgress | null };
+
+const readerPalettes = {
+  paper: { page: "#f4eadb", text: "#30292d", heading: "#332b31", link: "#665b82" },
+  sepia: { page: "#ead8b9", text: "#392d25", heading: "#36271f", link: "#76563f" },
+  night: { page: "#211f27", text: "#e8dfd2", heading: "#f2e8dc", link: "#c2b5e0" },
+} as const;
+
+const readerFonts = {
+  classic: "Georgia, 'Times New Roman', serif",
+  elegant: "'Palatino Linotype', Palatino, 'Book Antiqua', serif",
+  accessible: "Arial, Helvetica, sans-serif",
+} as const;
+
+function applyReaderPreferences(rendition: Rendition, preferences: ReaderPreferences) {
+  const palette = readerPalettes[preferences.theme];
+  const font = readerFonts[preferences.font];
+  const texture = preferences.texture
+    ? "radial-gradient(circle at 18% 24%, rgba(90,70,48,.025) 0 1px, transparent 1.5px), radial-gradient(circle at 76% 62%, rgba(90,70,48,.02) 0 1px, transparent 1.5px)"
+    : "none";
+
+  rendition.themes.override("background-color", palette.page, true);
+  rendition.themes.override("background-image", texture, true);
+  rendition.themes.override("background-size", "17px 19px, 23px 29px", true);
+  rendition.themes.override("color", palette.text, true);
+  rendition.themes.override("font-family", font, true);
+  rendition.themes.override("line-height", String(preferences.lineHeight), true);
+  rendition.themes.fontSize(`${preferences.fontSize}%`);
+
+  rendition.themes.override("--lyreah-heading-color", palette.heading, true);
+  rendition.themes.override("--lyreah-link-color", palette.link, true);
+}
 
 async function readApiError(response: Response) {
   const data = (await response.json().catch(() => null)) as { error?: string } | null;
@@ -28,6 +66,8 @@ export function EpubReader({
   const viewerRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<Book | null>(null);
   const renditionRef = useRef<Rendition | null>(null);
+  const preferencesRef = useRef(DEFAULT_READER_PREFERENCES);
+  const preferencesLoadedRef = useRef(false);
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
@@ -37,7 +77,7 @@ export function EpubReader({
   const [progress, setProgress] = useState(0);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
-  const [fontSize, setFontSize] = useState(108);
+  const [preferences, setPreferences] = useState(DEFAULT_READER_PREFERENCES);
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
@@ -57,13 +97,34 @@ export function EpubReader({
     }
   }, []);
 
-  const changeFontSize = useCallback((delta: number) => {
-    setFontSize((current) => {
-      const next = Math.min(140, Math.max(88, current + delta));
-      renditionRef.current?.themes.fontSize(`${next}%`);
-      return next;
+  useEffect(() => {
+    queueMicrotask(() => {
+      const restored = parseReaderPreferences(
+        window.localStorage.getItem(READER_PREFERENCES_STORAGE_KEY),
+      );
+      preferencesRef.current = restored;
+      preferencesLoadedRef.current = true;
+      setPreferences(restored);
     });
   }, []);
+
+  useEffect(() => {
+    preferencesRef.current = preferences;
+    document.documentElement.dataset.readerTheme = preferences.theme;
+
+    if (preferencesLoadedRef.current) {
+      window.localStorage.setItem(
+        READER_PREFERENCES_STORAGE_KEY,
+        JSON.stringify(preferences),
+      );
+    }
+
+    if (renditionRef.current) applyReaderPreferences(renditionRef.current, preferences);
+
+    return () => {
+      delete document.documentElement.dataset.readerTheme;
+    };
+  }, [preferences]);
 
   useEffect(() => {
     let disposed = false;
@@ -148,32 +209,33 @@ export function EpubReader({
             "font-family": "Georgia, 'Times New Roman', serif",
             "line-height": "1.75",
             "box-sizing": "border-box",
-            "max-width": "780px",
+            "max-width": "680px",
             margin: "0 auto",
-            padding: "5% 8% 10%",
+            padding: "7% 9% 12%",
           },
           p: {
             "font-size": "1rem",
             margin: "0 0 1.15em",
           },
           h1: {
-            color: "#3f3842",
+            color: "var(--lyreah-heading-color, #332b31)",
             "font-family": "Georgia, 'Times New Roman', serif",
-            "font-weight": "500",
+            "font-size": "2em",
+            "font-weight": "600",
             "line-height": "1.15",
             margin: "0 0 1.1em",
           },
           "h2, h3": {
-            color: "#3f3842",
+            color: "var(--lyreah-heading-color, #332b31)",
             "font-family": "Georgia, 'Times New Roman', serif",
             "font-weight": "500",
             "line-height": "1.25",
             margin: "1.35em 0 0.7em",
           },
-          a: { color: "#6d6388" },
+          a: { color: "var(--lyreah-link-color, #665b82)" },
           img: { "max-width": "100%" },
         });
-        rendition.themes.fontSize("108%");
+        applyReaderPreferences(rendition, preferencesRef.current);
 
         rendition.on("relocated", (location: Location) => {
           if (disposed) return;
@@ -213,6 +275,9 @@ export function EpubReader({
           setAtStart(location.atStart);
           setAtEnd(location.atEnd);
           setError("");
+          viewer.classList.remove("is-page-entering");
+          void viewer.offsetWidth;
+          viewer.classList.add("is-page-entering");
           scheduleSave({
             cfi: location.start.cfi,
             percentageBasisPoints: Math.round(percentage * 100),
@@ -262,6 +327,15 @@ export function EpubReader({
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLButtonElement ||
+        target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+
       if (event.key === "ArrowLeft") {
         event.preventDefault();
         move("previous");
@@ -278,30 +352,21 @@ export function EpubReader({
   }, [move]);
 
   return (
-    <section className="epub-reader" aria-label={`Lecture de ${title}`}>
+    <section
+      aria-label={`Lecture de ${title}`}
+      className="epub-reader"
+      data-reader-texture={preferences.texture ? "on" : "off"}
+      data-reader-theme={preferences.theme}
+    >
       <header className="epub-reader__header">
         <span className="epub-reader__page">{pageLabel || "Lecture"}</span>
         <span className="epub-reader__chapter">{chapter}</span>
         <div className="epub-reader__tools">
-          <div aria-label="Taille du texte" className="epub-reader__font-controls">
-            <button
-              aria-label="Réduire la taille du texte"
-              disabled={status !== "ready" || fontSize <= 88}
-              onClick={() => changeFontSize(-10)}
-              type="button"
-            >
-              A
-            </button>
-            <span aria-hidden="true">Aa</span>
-            <button
-              aria-label="Augmenter la taille du texte"
-              disabled={status !== "ready" || fontSize >= 140}
-              onClick={() => changeFontSize(10)}
-              type="button"
-            >
-              A
-            </button>
-          </div>
+          <ReaderAppearancePanel
+            disabled={status !== "ready"}
+            onChange={setPreferences}
+            preferences={preferences}
+          />
         </div>
       </header>
 
@@ -344,7 +409,11 @@ export function EpubReader({
             <span aria-hidden="true">→</span>
           </button>
         </div>
-        <div className="epub-reader__progress-wrap">
+        <div
+          className="epub-reader__progress-wrap"
+          data-progress-label={`${chapter} · ${Math.round(progress)} %`}
+          title={`${chapter} · ${Math.round(progress)} %`}
+        >
           <span>
             Progression du livre {Math.round(progress)} %
             {saveStatus === "saving" ? " · sauvegarde…" : ""}
