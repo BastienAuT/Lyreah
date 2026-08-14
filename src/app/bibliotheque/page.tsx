@@ -26,8 +26,10 @@ export default async function LibraryPage() {
 
         {entries.length > 0 ? (
           <section className="library-grid" aria-label="Livres enregistrés">
-            {entries.map(({ book, authors, status }) => {
+            {entries.map(({ book, authors, status, percentageBasisPoints }) => {
               const author = authors.join(", ") || "Auteur inconnu";
+              const progress = Math.round((percentageBasisPoints ?? 0) / 100);
+              const hasStarted = progress > 0;
               const statusLabel = {
                 saved: "À lire",
                 reading: "Lecture en cours",
@@ -40,13 +42,22 @@ export default async function LibraryPage() {
                     <BookCover title={book.title} author={author} slug={book.slug} />
                   </Link>
                   <div className="library-book__meta">
-                    <p>{statusLabel}</p>
+                    <p>{hasStarted && status === "saved" ? "Lecture en cours" : statusLabel}</p>
                     <h2><Link href={`/livres/${book.slug}`}>{book.title}</Link></h2>
                     <span>{author}</span>
+                    {hasStarted ? (
+                      <div
+                        aria-label={`Progression de lecture : ${progress} %`}
+                        className="library-book__progress"
+                      >
+                        <span><i style={{ width: `${progress}%` }} /></span>
+                        <strong>{progress} %</strong>
+                      </div>
+                    ) : null}
                     <div className="library-book__actions">
                       {book.processingStatus === "ready" && book.epubRenditionPrefix ? (
                         <Link className="button button--primary" href={`/lire/${book.slug}`}>
-                          {status === "saved" ? "Commencer" : "Continuer"}
+                          {hasStarted || status !== "saved" ? "Reprendre" : "Commencer"}
                         </Link>
                       ) : (
                         <Link className="button button--secondary" href={`/livres/${book.slug}`}>
