@@ -7,6 +7,7 @@ import {
   books,
   booksToAuthors,
   libraryEntries,
+  readingProgress,
 } from "@/db/schema";
 
 export async function getLibraryEntry(userId: string, bookId: string) {
@@ -30,10 +31,18 @@ export async function getLibraryBooks(userId: string) {
       entryId: libraryEntries.id,
       status: libraryEntries.status,
       addedAt: libraryEntries.addedAt,
+      percentageBasisPoints: readingProgress.percentageBasisPoints,
       book: books,
     })
     .from(libraryEntries)
     .innerJoin(books, eq(libraryEntries.bookId, books.id))
+    .leftJoin(
+      readingProgress,
+      and(
+        eq(readingProgress.bookId, books.id),
+        eq(readingProgress.userId, libraryEntries.userId),
+      ),
+    )
     .where(
       and(eq(libraryEntries.userId, userId), isNotNull(books.publishedAt)),
     )

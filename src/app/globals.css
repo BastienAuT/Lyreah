@@ -166,6 +166,33 @@ button {
   font-size: 0.9rem;
 }
 
+.library-book__progress {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.library-book__progress > span {
+  overflow: hidden;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(222, 216, 238, 0.7);
+}
+
+.library-book__progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--forest), #a897bd);
+}
+
+.library-book__progress strong {
+  color: var(--forest);
+  font-size: 0.66rem;
+}
+
 .library-book__actions {
   display: flex;
   align-items: center;
@@ -427,13 +454,53 @@ button {
 }
 
 .epub-reader__viewer {
+  position: relative;
   overflow: hidden;
-  width: 100%;
+  width: min(100%, 920px);
   height: 100%;
-  border: 1px solid rgba(109, 99, 136, 0.1);
-  border-radius: 18px;
+  margin: 0 auto;
+  border: 1px solid rgba(105, 86, 67, 0.16);
+  border-radius: 10px 16px 16px 10px;
   background: #f5eee2;
-  box-shadow: 0 16px 48px rgba(75, 67, 98, 0.12);
+  box-shadow:
+    3px 0 0 #eee4d6,
+    6px 1px 0 rgba(224, 213, 198, 0.82),
+    0 4px 0 #eadfD0,
+    0 20px 52px rgba(75, 67, 98, 0.16);
+}
+
+.epub-reader__viewer::before,
+.epub-reader__viewer::after {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  content: "";
+  pointer-events: none;
+}
+
+.epub-reader__viewer::before {
+  left: 0;
+  width: 24px;
+  background: linear-gradient(
+    90deg,
+    rgba(83, 65, 52, 0.1),
+    rgba(255, 255, 255, 0.2) 28%,
+    transparent
+  );
+}
+
+.epub-reader__viewer::after {
+  top: 9px;
+  right: 0;
+  bottom: 9px;
+  width: 7px;
+  border-left: 1px solid rgba(105, 86, 67, 0.08);
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 1px,
+    rgba(105, 86, 67, 0.07) 1px 2px
+  );
 }
 
 .epub-reader__viewer iframe {
@@ -442,15 +509,19 @@ button {
 
 .epub-reader__notice {
   position: absolute;
-  inset: 14px clamp(64px, 6vw, 98px) 16px;
+  top: 14px;
+  bottom: 16px;
+  left: 50%;
   display: grid;
   z-index: 2;
+  width: min(calc(100% - 128px), 920px);
   place-content: center;
   justify-items: center;
   padding: 32px;
   background: #f5eee2;
   border-radius: 18px;
   text-align: center;
+  transform: translateX(-50%);
 }
 
 .epub-reader__notice > span {
@@ -864,8 +935,18 @@ button {
     box-shadow: none;
   }
 
+  .epub-reader__viewer::before {
+    width: 12px;
+  }
+
+  .epub-reader__viewer::after {
+    display: none;
+  }
+
   .epub-reader__notice {
     inset: 0;
+    width: auto;
+    transform: none;
   }
 
   .epub-reader__controls {

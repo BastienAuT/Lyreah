@@ -7,6 +7,11 @@ import type { Location } from "epubjs/types/rendition";
 import { AmbientAudioPlayer } from "./ambient-audio-player";
 
 type ReaderAccess = { url: string; expiresIn: number };
+type SavedProgress = {
+  cfi: string;
+  percentageBasisPoints: number;
+};
+type ProgressResponse = { progress: SavedProgress | null };
 
 async function readApiError(response: Response) {
   const data = (await response.json().catch(() => null)) as { error?: string } | null;
@@ -33,6 +38,9 @@ export function EpubReader({
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
   const [fontSize, setFontSize] = useState(108);
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
 
   const move = useCallback(async (direction: "previous" | "next") => {
     const rendition = renditionRef.current;
@@ -59,21 +67,55 @@ export function EpubReader({
 
   useEffect(() => {
     let disposed = false;
+    let saveTimer: ReturnType<typeof setTimeout> | undefined;
+    let latestPosition: SavedProgress | null = null;
     const viewer = viewerRef.current;
+
+    async function savePosition(position: SavedProgress, keepalive = false) {
+      if (!keepalive && !disposed) setSaveStatus("saving");
+
+      try {
+        const response = await fetch(`/api/reader/books/${bookId}/progress`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(position),
+          keepalive,
+        });
+
+        if (!response.ok) throw new Error("Unable to save reading progress.");
+        if (!disposed) setSaveStatus("saved");
+      } catch {
+        if (!disposed) setSaveStatus("error");
+      }
+    }
+
+    function scheduleSave(position: SavedProgress) {
+      latestPosition = position;
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => savePosition(position), 800);
+    }
+
+    function saveBeforeLeaving() {
+      if (latestPosition) void savePosition(latestPosition, true);
+    }
 
     async function openBook() {
       if (!viewer) return;
 
       try {
-        const accessResponse = await fetch(`/api/reader/books/${bookId}/access`, {
-          cache: "no-store",
-        });
+        const [accessResponse, progressResponse] = await Promise.all([
+          fetch(`/api/reader/books/${bookId}/access`, { cache: "no-store" }),
+          fetch(`/api/reader/books/${bookId}/progress`, { cache: "no-store" }),
+        ]);
 
         if (!accessResponse.ok) {
           throw new Error(await readApiError(accessResponse));
         }
 
         const access = (await accessResponse.json()) as ReaderAccess;
+        const savedProgress = progressResponse.ok
+          ? ((await progressResponse.json()) as ProgressResponse).progress
+          : null;
         const epubResponse = await fetch(access.url, { cache: "no-store" });
 
         if (!epubResponse.ok) {
@@ -90,8 +132,7 @@ export function EpubReader({
           width: "100%",
           height: "100%",
           flow: "paginated",
-          spread: "auto",
-          minSpreadWidth: 960,
+          spread: "none",
           allowScriptedContent: false,
         });
 
@@ -106,17 +147,28 @@ export function EpubReader({
             color: "#3f3842",
             "font-family": "Georgia, 'Times New Roman', serif",
             "line-height": "1.75",
-            margin: "0",
+            "box-sizing": "border-box",
+            "max-width": "780px",
+            margin: "0 auto",
             padding: "5% 8% 10%",
           },
           p: {
             "font-size": "1rem",
-            "margin-bottom": "1.15em",
+            margin: "0 0 1.15em",
           },
-          "h1, h2, h3": {
+          h1: {
             color: "#3f3842",
             "font-family": "Georgia, 'Times New Roman', serif",
             "font-weight": "500",
+            "line-height": "1.15",
+            margin: "0 0 1.1em",
+          },
+          "h2, h3": {
+            color: "#3f3842",
+            "font-family": "Georgia, 'Times New Roman', serif",
+            "font-weight": "500",
+            "line-height": "1.25",
+            margin: "1.35em 0 0.7em",
           },
           a: { color: "#6d6388" },
           img: { "max-width": "100%" },
@@ -150,20 +202,32 @@ export function EpubReader({
                 : `Page ${displayedStart.page} sur ${displayedStart.total}`
               : "",
           );
-          setProgress(
-            spineLength
-              ? Math.min(
-                  100,
-                  ((location.end.index + sectionProgress) / spineLength) * 100,
-                )
-              : 0,
-          );
+          const percentage = spineLength
+            ? Math.min(
+                100,
+                ((location.end.index + sectionProgress) / spineLength) * 100,
+              )
+            : 0;
+
+          setProgress(percentage);
           setAtStart(location.atStart);
           setAtEnd(location.atEnd);
           setError("");
+          scheduleSave({
+            cfi: location.start.cfi,
+            percentageBasisPoints: Math.round(percentage * 100),
+          });
         });
 
-        await rendition.display();
+        if (savedProgress?.cfi) {
+          try {
+            await rendition.display(savedProgress.cfi);
+          } catch {
+            await rendition.display();
+          }
+        } else {
+          await rendition.display();
+        }
 
         if (!disposed) {
           setStatus("ready");
@@ -181,9 +245,13 @@ export function EpubReader({
     }
 
     openBook();
+    window.addEventListener("pagehide", saveBeforeLeaving);
 
     return () => {
       disposed = true;
+      window.removeEventListener("pagehide", saveBeforeLeaving);
+      if (saveTimer) clearTimeout(saveTimer);
+      saveBeforeLeaving();
       renditionRef.current?.destroy();
       bookRef.current?.destroy();
       renditionRef.current = null;
@@ -277,7 +345,12 @@ export function EpubReader({
           </button>
         </div>
         <div className="epub-reader__progress-wrap">
-          <span>Progression du livre {Math.round(progress)} %</span>
+          <span>
+            Progression du livre {Math.round(progress)} %
+            {saveStatus === "saving" ? " · sauvegarde…" : ""}
+            {saveStatus === "saved" ? " · enregistrée" : ""}
+            {saveStatus === "error" ? " · non enregistrée" : ""}
+          </span>
           <div
             aria-label="Progression du livre"
             aria-valuemax={100}
