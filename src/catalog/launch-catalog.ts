@@ -1,39 +1,48 @@
 export type LaunchCatalogBook = {
-  gutenbergId: number;
-  language: "en" | "fr";
+  language: "fr";
   slug: string;
+  source:
+    | { provider: "gutenberg"; id: number }
+    | { provider: "wikisource"; page: string };
   sourceUrl: string;
 };
 
-const gutenbergBook = (
-  slug: string,
-  gutenbergId: number,
-  language: LaunchCatalogBook["language"],
-): LaunchCatalogBook => ({
-  gutenbergId,
-  language,
+const gutenbergBook = (slug: string, id: number): LaunchCatalogBook => ({
+  language: "fr",
   slug,
-  sourceUrl: `https://www.gutenberg.org/ebooks/${gutenbergId}`,
+  source: { provider: "gutenberg", id },
+  sourceUrl: `https://www.gutenberg.org/ebooks/${id}`,
+});
+
+const wikisourceBook = (slug: string, page: string): LaunchCatalogBook => ({
+  language: "fr",
+  slug,
+  source: { provider: "wikisource", page },
+  sourceUrl: `https://fr.wikisource.org/wiki/${encodeURIComponent(page).replaceAll("%2F", "/")}`,
 });
 
 export const launchCatalog = [
-  gutenbergBook("frankenstein", 84, "en"),
-  gutenbergBook("alice-au-pays-des-merveilles", 11, "en"),
-  gutenbergBook("tour-du-monde-en-80-jours", 800, "fr"),
-  gutenbergBook("vingt-mille-lieues-sous-les-mers", 54873, "fr"),
-  gutenbergBook("voyage-au-centre-de-la-terre", 4791, "fr"),
-  gutenbergBook("la-machine-a-explorer-le-temps", 35, "en"),
-  gutenbergBook("la-guerre-des-mondes", 36, "en"),
-  gutenbergBook("dracula", 345, "en"),
-  gutenbergBook("peter-pan", 16, "en"),
-  gutenbergBook("le-magicien-d-oz", 55, "en"),
-  gutenbergBook("l-ile-au-tresor", 120, "en"),
-  gutenbergBook("le-jardin-secret", 17396, "en"),
-  gutenbergBook("robinson-crusoe", 521, "en"),
+  wikisourceBook("frankenstein", "Frankenstein, ou le Prométhée moderne (trad. Saladin)"),
+  gutenbergBook("alice-au-pays-des-merveilles", 55456),
+  gutenbergBook("tour-du-monde-en-80-jours", 800),
+  gutenbergBook("vingt-mille-lieues-sous-les-mers", 54873),
+  gutenbergBook("voyage-au-centre-de-la-terre", 4791),
+  wikisourceBook("la-machine-a-explorer-le-temps", "La Machine à explorer le temps"),
+  wikisourceBook("la-guerre-des-mondes", "La Guerre des mondes"),
+  gutenbergBook("de-la-terre-a-la-lune", 38674),
+  gutenbergBook("le-livre-de-la-jungle", 54183),
+  gutenbergBook("les-malheurs-de-sophie", 15058),
+  gutenbergBook("l-ile-au-tresor", 76225),
+  gutenbergBook("en-famille", 13793),
+  gutenbergBook("robinson-crusoe", 57964),
 ] as const satisfies readonly LaunchCatalogBook[];
 
-export const GUTENBERG_RIGHTS_STATEMENT =
-  "Œuvre du domaine public en France et aux États-Unis. Édition numérique et crédits de transcription : Project Gutenberg.";
+export const RETIRED_ENGLISH_BOOK_SLUGS = [
+  "dracula", "peter-pan", "le-magicien-d-oz", "le-jardin-secret",
+] as const;
+
+export const FRENCH_PUBLIC_DOMAIN_RIGHTS_STATEMENT =
+  "Œuvre ou traduction française du domaine public en France. Édition numérique libre, source et crédits conservés dans la fiche.";
 
 export function gutenbergEpubUrl(gutenbergId: number) {
   return `https://www.gutenberg.org/ebooks/${gutenbergId}.epub3.images`;
@@ -41,4 +50,9 @@ export function gutenbergEpubUrl(gutenbergId: number) {
 
 export function gutenbergCompactEpubUrl(gutenbergId: number) {
   return `https://www.gutenberg.org/ebooks/${gutenbergId}.epub.noimages`;
+}
+
+export function wikisourceEpubUrl(page: string) {
+  const query = new URLSearchParams({ format: "epub", lang: "fr", page });
+  return `https://ws-export.wmcloud.org/?${query}`;
 }

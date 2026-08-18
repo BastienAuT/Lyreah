@@ -39,6 +39,12 @@ describe("adminBookImportSchema", () => {
       }).success,
     ).toBe(false);
   });
+
+  test("refuse un livre qui n’est pas en français", () => {
+    expect(
+      adminBookImportSchema.safeParse({ ...validImport, language: "en" }).success,
+    ).toBe(false);
+  });
 });
 
 describe("import file helpers", () => {

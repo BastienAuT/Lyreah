@@ -3,11 +3,14 @@ import { createClient } from "@supabase/supabase-js";
 import { getDatabase } from "../src/db";
 import { books } from "../src/db/schema";
 import { extractEpubRendition } from "../src/epub/archive";
+import { assertFrenchEpub } from "../src/catalog/epub-language";
 import {
-  GUTENBERG_RIGHTS_STATEMENT,
+  FRENCH_PUBLIC_DOMAIN_RIGHTS_STATEMENT,
   gutenbergCompactEpubUrl,
   gutenbergEpubUrl,
   launchCatalog,
+  type LaunchCatalogBook,
+  wikisourceEpubUrl,
 } from "../src/catalog/launch-catalog";
 import {
   createNestedStoragePath,
@@ -54,8 +57,10 @@ async function upload(
   if (error) throw new Error(`Upload impossible (${path}) : ${error.message}`);
 }
 
-async function downloadEpub(gutenbergId: number) {
-  const urls = [gutenbergCompactEpubUrl(gutenbergId), gutenbergEpubUrl(gutenbergId)];
+async function downloadEpub(source: LaunchCatalogBook["source"]) {
+  const urls = source.provider === "gutenberg"
+    ? [gutenbergCompactEpubUrl(source.id), gutenbergEpubUrl(source.id)]
+    : [wikisourceEpubUrl(source.page)];
   for (const url of urls) {
     console.log(`  essai : ${url}`);
     const response = await fetch(url, {
@@ -67,7 +72,7 @@ async function downloadEpub(gutenbergId: number) {
       return { contents, url };
     }
   }
-  throw new Error(`Aucun EPUB exploitable pour le livre Gutenberg ${gutenbergId}`);
+  throw new Error(`Aucun EPUB exploitable pour ${JSON.stringify(source)}`);
 }
 
 for (const catalogBook of selectedBooks) {
@@ -83,7 +88,9 @@ for (const catalogBook of selectedBooks) {
 
   const isComplete =
     book.processingStatus === "ready" &&
-    Boolean(book.epubMasterObjectKey && book.epubRenditionPrefix);
+    Boolean(book.epubMasterObjectKey && book.epubRenditionPrefix) &&
+    book.language === "fr" &&
+    book.sourceUrl === catalogBook.sourceUrl;
   if (isComplete && !force) {
     console.log(`✓ ${catalogBook.slug} : EPUB déjà prêt`);
     continue;
@@ -95,11 +102,10 @@ for (const catalogBook of selectedBooks) {
   }
 
   console.log(`↓ ${catalogBook.slug}`);
-  const { contents: epub, url: downloadUrl } = await downloadEpub(
-    catalogBook.gutenbergId,
-  );
+  const { contents: epub, url: downloadUrl } = await downloadEpub(catalogBook.source);
 
   const rendition = await extractEpubRendition(epub);
+  assertFrenchEpub(rendition.files, rendition.packageDocumentPath);
   const masterPath = createStoragePath("masters", book.id, "master.epub");
   await upload(masterPath, epub, "application/epub+zip");
   await database
@@ -111,7 +117,7 @@ for (const catalogBook of selectedBooks) {
       originalEpubFileName: `${catalogBook.slug}.epub`,
       processingError: null,
       processingStatus: "pending",
-      rightsStatement: GUTENBERG_RIGHTS_STATEMENT,
+      rightsStatement: FRENCH_PUBLIC_DOMAIN_RIGHTS_STATEMENT,
       sourceUrl: catalogBook.sourceUrl,
       updatedAt: new Date(),
     })

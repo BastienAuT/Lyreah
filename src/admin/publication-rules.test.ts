@@ -5,6 +5,7 @@ describe("canPublishBook", () => {
   test("allows a ready book with an EPUB rendition", () => {
     expect(
       canPublishBook({
+        language: "fr",
         processingStatus: "ready",
         epubRenditionPrefix: "dev/renditions/book-42",
       }),
@@ -14,12 +15,20 @@ describe("canPublishBook", () => {
   test("rejects books that are incomplete or missing their rendition", () => {
     expect(
       canPublishBook({
+        language: "fr",
         processingStatus: "processing",
         epubRenditionPrefix: "dev/renditions/book-42",
       }),
     ).toBe(false);
     expect(
-      canPublishBook({ processingStatus: "ready", epubRenditionPrefix: null }),
+      canPublishBook({ language: "fr", processingStatus: "ready", epubRenditionPrefix: null }),
+    ).toBe(false);
+    expect(
+      canPublishBook({
+        language: "en",
+        processingStatus: "ready",
+        epubRenditionPrefix: "dev/renditions/book-42",
+      }),
     ).toBe(false);
   });
 });

@@ -60,7 +60,7 @@ async function hydrateBooks(
 
 export async function getCatalogBooks(filters: CatalogFilters = {}) {
   const database = getDatabase();
-  const conditions = [isNotNull(books.publishedAt)];
+  const conditions = [isNotNull(books.publishedAt), eq(books.language, "fr")];
   const normalizedQuery = filters.query?.trim();
 
   if (normalizedQuery) {

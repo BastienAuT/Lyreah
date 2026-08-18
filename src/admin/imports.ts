@@ -29,6 +29,7 @@ export async function createBookImport(
   const [existingBook] = await database
     .select({
       id: books.id,
+      language: books.language,
       processingStatus: books.processingStatus,
       createdByProfileId: books.createdByProfileId,
       epubMasterObjectKey: books.epubMasterObjectKey,
@@ -168,6 +169,7 @@ export async function getRecentBookImports() {
       id: books.id,
       title: books.title,
       slug: books.slug,
+      language: books.language,
       processingStatus: books.processingStatus,
       processingError: books.processingError,
       epubRenditionPrefix: books.epubRenditionPrefix,

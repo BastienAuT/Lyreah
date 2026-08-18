@@ -16,6 +16,7 @@ export async function setBookPublication(
     .select({
       id: books.id,
       slug: books.slug,
+      language: books.language,
       processingStatus: books.processingStatus,
       epubRenditionPrefix: books.epubRenditionPrefix,
       publishedAt: books.publishedAt,

@@ -195,7 +195,7 @@ export function BookImportForm() {
         </label>
         <label>
           <span>Langue</span>
-          <input name="language" required defaultValue="fr" maxLength={12} />
+          <input name="language" required readOnly value="fr" />
         </label>
         <label>
           <span>Année de publication</span>

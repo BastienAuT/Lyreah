@@ -4,25 +4,25 @@ import { catalogCoverPaths } from "@/catalog/cover-assets";
 
 const books = [
   {
-    title: "Frankenstein",
-    author: "Mary Shelley",
-    label: "Science-fiction gothique",
-    slug: "frankenstein",
-    cover: catalogCoverPaths.frankenstein,
-  },
-  {
-    title: "Alice au pays des merveilles",
-    author: "Lewis Carroll",
-    label: "Conte fantastique",
-    slug: "alice-au-pays-des-merveilles",
-    cover: catalogCoverPaths["alice-au-pays-des-merveilles"],
-  },
-  {
     title: "Le Tour du monde en 80 jours",
     author: "Jules Verne",
     label: "Aventure",
     slug: "tour-du-monde-en-80-jours",
     cover: catalogCoverPaths["tour-du-monde-en-80-jours"],
+  },
+  {
+    title: "Vingt mille lieues sous les mers",
+    author: "Jules Verne",
+    label: "Science-fiction maritime",
+    slug: "vingt-mille-lieues-sous-les-mers",
+    cover: catalogCoverPaths["vingt-mille-lieues-sous-les-mers"],
+  },
+  {
+    title: "Voyage au centre de la Terre",
+    author: "Jules Verne",
+    label: "Exploration fantastique",
+    slug: "voyage-au-centre-de-la-terre",
+    cover: catalogCoverPaths["voyage-au-centre-de-la-terre"],
   },
 ];
 

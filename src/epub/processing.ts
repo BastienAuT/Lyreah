@@ -3,6 +3,7 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { getDatabase } from "@/db";
 import { books } from "@/db/schema";
+import { assertFrenchEpub } from "@/catalog/epub-language";
 import {
   createNestedStoragePath,
   createStorageResourcePrefix,
@@ -64,6 +65,7 @@ export async function processBookRendition(bookId: string) {
   try {
     const epub = await downloadStorageObject(book.epubMasterObjectKey);
     const rendition = await extractEpubRendition(epub);
+    assertFrenchEpub(rendition.files, rendition.packageDocumentPath);
 
     await uploadRenditionFiles(book.id, rendition.files);
 

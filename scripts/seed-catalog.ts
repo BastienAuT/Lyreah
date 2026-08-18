@@ -1,6 +1,10 @@
-import { count, eq } from "drizzle-orm";
+import { count, eq, inArray } from "drizzle-orm";
 import { getDatabase } from "../src/db";
 import { authors, books, booksToAuthors, booksToCategories, categories } from "../src/db/schema";
+import {
+  FRENCH_PUBLIC_DOMAIN_RIGHTS_STATEMENT,
+  RETIRED_ENGLISH_BOOK_SLUGS,
+} from "../src/catalog/launch-catalog";
 
 const seedBooks = [
   {
@@ -8,20 +12,20 @@ const seedBooks = [
     title: "Frankenstein",
     synopsis: "Victor Frankenstein donne vie à une créature et découvre trop tard le poids de son ambition. Un récit gothique sur la solitude, la responsabilité et le désir d’être aimé.",
     publicationYear: 1818,
-    language: "en",
+    language: "fr",
     author: { name: "Mary Shelley", slug: "mary-shelley" },
     categories: ["Fantastique", "Science-fiction", "Classiques"],
-    sourceUrl: "https://www.gutenberg.org/ebooks/84",
+    sourceUrl: "https://fr.wikisource.org/wiki/Frankenstein%2C%20ou%20le%20Prom%C3%A9th%C3%A9e%20moderne%20(trad.%20Saladin)",
   },
   {
     slug: "alice-au-pays-des-merveilles",
     title: "Alice au pays des merveilles",
     synopsis: "En suivant un lapin blanc pressé, Alice bascule dans un monde où la logique se dérobe et où chaque rencontre devient une énigme délicieusement absurde.",
     publicationYear: 1865,
-    language: "en",
+    language: "fr",
     author: { name: "Lewis Carroll", slug: "lewis-carroll" },
     categories: ["Fantastique", "Jeunesse", "Classiques"],
-    sourceUrl: "https://www.gutenberg.org/ebooks/11",
+    sourceUrl: "https://www.gutenberg.org/ebooks/55456",
   },
   {
     slug: "tour-du-monde-en-80-jours",
@@ -58,80 +62,80 @@ const seedBooks = [
     title: "La Machine à explorer le temps",
     synopsis: "Un inventeur victorien voyage jusqu’à un avenir lointain où l’humanité s’est divisée entre les paisibles Éloïs et les inquiétants Morlocks.",
     publicationYear: 1895,
-    language: "en",
+    language: "fr",
     author: { name: "H. G. Wells", slug: "h-g-wells" },
     categories: ["Science-fiction"],
-    sourceUrl: "https://www.gutenberg.org/ebooks/35",
+    sourceUrl: "https://fr.wikisource.org/wiki/La%20Machine%20%C3%A0%20explorer%20le%20temps",
   },
   {
     slug: "la-guerre-des-mondes",
     title: "La Guerre des mondes",
     synopsis: "Des cylindres venus de Mars s’écrasent en Angleterre. Face à une technologie écrasante, un témoin traverse un pays bouleversé et lutte pour retrouver les siens.",
     publicationYear: 1898,
-    language: "en",
+    language: "fr",
     author: { name: "H. G. Wells", slug: "h-g-wells" },
     categories: ["Science-fiction"],
-    sourceUrl: "https://www.gutenberg.org/ebooks/36",
+    sourceUrl: "https://fr.wikisource.org/wiki/La%20Guerre%20des%20mondes",
   },
   {
-    slug: "dracula",
-    title: "Dracula",
-    synopsis: "Des journaux et des lettres racontent l’arrivée du comte Dracula en Angleterre, puis la traque menée par Van Helsing et ses compagnons contre cette présence nocturne.",
-    publicationYear: 1897,
-    language: "en",
-    author: { name: "Bram Stoker", slug: "bram-stoker" },
-    categories: ["Fantastique"],
-    sourceUrl: "https://www.gutenberg.org/ebooks/345",
+    slug: "de-la-terre-a-la-lune",
+    title: "De la Terre à la Lune",
+    synopsis: "Après la guerre de Sécession, les membres du Gun-Club imaginent d’envoyer un projectile vers la Lune. Leur projet démesuré devient une aventure scientifique et humaine fondatrice de la science-fiction.",
+    publicationYear: 1865,
+    language: "fr",
+    author: { name: "Jules Verne", slug: "jules-verne" },
+    categories: ["Science-fiction", "Aventure", "Voyage", "Classiques"],
+    sourceUrl: "https://www.gutenberg.org/ebooks/38674",
   },
   {
-    slug: "peter-pan",
-    title: "Peter Pan",
-    synopsis: "Peter Pan entraîne Wendy et ses frères au Pays imaginaire, parmi les Enfants perdus, les fées et les pirates du capitaine Crochet.",
-    publicationYear: 1911,
-    language: "en",
-    author: { name: "J. M. Barrie", slug: "j-m-barrie" },
-    categories: ["Fantastique", "Jeunesse"],
-    sourceUrl: "https://www.gutenberg.org/ebooks/16",
-  },
-  {
-    slug: "le-magicien-d-oz",
-    title: "Le Magicien d’Oz",
-    synopsis: "Emportée par un cyclone, Dorothy suit la route de briques jaunes avec trois compagnons inoubliables pour demander au mystérieux magicien de les aider.",
-    publicationYear: 1900,
-    language: "en",
-    author: { name: "L. Frank Baum", slug: "l-frank-baum" },
+    slug: "le-livre-de-la-jungle",
+    title: "Le Livre de la jungle",
+    synopsis: "Élevé par les loups, Mowgli apprend la loi de la jungle auprès de Baloo et Bagheera, tandis que le tigre Shere Khan menace son équilibre entre le monde animal et celui des hommes.",
+    publicationYear: 1894,
+    language: "fr",
+    author: { name: "Rudyard Kipling", slug: "rudyard-kipling" },
     categories: ["Fantastique", "Jeunesse", "Aventure"],
-    sourceUrl: "https://www.gutenberg.org/ebooks/55",
+    sourceUrl: "https://www.gutenberg.org/ebooks/54183",
+  },
+  {
+    slug: "les-malheurs-de-sophie",
+    title: "Les Malheurs de Sophie",
+    synopsis: "Curieuse, vive et souvent imprudente, Sophie multiplie les expériences et les bêtises dans le château familial, apprenant peu à peu à mesurer les conséquences de ses élans.",
+    publicationYear: 1858,
+    language: "fr",
+    author: { name: "Comtesse de Ségur", slug: "comtesse-de-segur" },
+    categories: ["Jeunesse", "Classiques"],
+    sourceUrl: "https://www.gutenberg.org/ebooks/15058",
   },
   {
     slug: "l-ile-au-tresor",
     title: "L’Île au trésor",
     synopsis: "Une carte au trésor entraîne le jeune Jim Hawkins en mer. À bord de l’Hispaniola, il doit déjouer les plans de Long John Silver et de son équipage de pirates.",
     publicationYear: 1883,
-    language: "en",
+    language: "fr",
     author: { name: "Robert Louis Stevenson", slug: "robert-louis-stevenson" },
     categories: ["Jeunesse", "Aventure", "Voyage"],
-    sourceUrl: "https://www.gutenberg.org/ebooks/120",
+    sourceUrl: "https://www.gutenberg.org/ebooks/76225",
   },
   {
-    slug: "le-jardin-secret",
-    title: "Le Jardin secret",
-    synopsis: "Mary Lennox découvre un jardin abandonné dans le domaine de son oncle. En le faisant renaître avec ses nouveaux amis, elle transforme peu à peu leurs vies.",
-    publicationYear: 1911,
-    language: "en",
-    author: { name: "Frances Hodgson Burnett", slug: "frances-hodgson-burnett" },
-    categories: ["Jeunesse"],
-    sourceUrl: "https://www.gutenberg.org/ebooks/17396",
+    slug: "en-famille",
+    title: "En famille",
+    synopsis: "Orpheline et sans ressources, Perrine traverse seule la France pour retrouver sa famille. Son courage et son intelligence lui ouvrent peu à peu les portes d’un monde qui ignore encore son identité.",
+    publicationYear: 1893,
+    language: "fr",
+    author: { name: "Hector Malot", slug: "hector-malot" },
+    categories: ["Jeunesse", "Aventure", "Classiques"],
+    sourceUrl: "https://www.gutenberg.org/ebooks/13793",
   },
   {
     slug: "robinson-crusoe",
     title: "Robinson Crusoé",
     synopsis: "Seul survivant d’un naufrage, Robinson organise sa vie sur une île déserte. Les années de solitude mettent à l’épreuve son ingéniosité, ses convictions et son humanité.",
     publicationYear: 1719,
-    language: "en",
+    language: "fr",
     author: { name: "Daniel Defoe", slug: "daniel-defoe" },
     categories: ["Voyage"],
-    sourceUrl: "https://www.gutenberg.org/ebooks/521",
+    sourceUrl: "https://www.gutenberg.org/ebooks/57964",
   },
 ] as const;
 
@@ -153,7 +157,7 @@ for (const seedBook of seedBooks) {
       publicationYear: seedBook.publicationYear,
       language: seedBook.language,
       rightsStatus: "public_domain",
-      rightsStatement: "Œuvre du domaine public. Source numérique : Project Gutenberg.",
+      rightsStatement: FRENCH_PUBLIC_DOMAIN_RIGHTS_STATEMENT,
       sourceUrl: seedBook.sourceUrl,
       isFeatured: true,
       processingStatus: "ready",
@@ -167,7 +171,7 @@ for (const seedBook of seedBooks) {
         publicationYear: seedBook.publicationYear,
         language: seedBook.language,
         rightsStatus: "public_domain",
-        rightsStatement: "Œuvre du domaine public. Source numérique : Project Gutenberg.",
+        rightsStatement: FRENCH_PUBLIC_DOMAIN_RIGHTS_STATEMENT,
         sourceUrl: seedBook.sourceUrl,
         isFeatured: true,
         processingStatus: "ready",
@@ -190,6 +194,11 @@ for (const seedBook of seedBooks) {
   }
 }
 
+await database
+  .update(books)
+  .set({ isFeatured: false, publishedAt: null, updatedAt: new Date() })
+  .where(inArray(books.slug, [...RETIRED_ENGLISH_BOOK_SLUGS]));
+
 const seeded = await database.select({ title: books.title }).from(books).where(eq(books.isFeatured, true));
 const categoryCounts = await database
   .select({ name: categories.name, books: count(booksToCategories.bookId) })
@@ -198,7 +207,12 @@ const categoryCounts = await database
   .groupBy(categories.id)
   .orderBy(categories.name);
 
-const incompleteCategories = categoryCounts.filter(({ books: total }) => total < 5);
+const launchCategoryNames = new Set<string>(
+  seedBooks.flatMap((book) => [...book.categories]),
+);
+const incompleteCategories = categoryCounts.filter(
+  ({ books: total, name }) => launchCategoryNames.has(name) && total < 5,
+);
 
 if (incompleteCategories.length > 0) {
   throw new Error(

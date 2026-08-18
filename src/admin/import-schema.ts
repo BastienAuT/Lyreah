@@ -19,7 +19,7 @@ export const adminBookImportSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   authorName: z.string().trim().min(2).max(140),
   synopsis: z.string().trim().min(20).max(5000),
-  language: z.string().trim().min(2).max(12),
+  language: z.literal("fr"),
   publicationYear: z.number().int().min(0).max(new Date().getFullYear()).nullable(),
   categories: z.array(z.string().trim().min(2).max(80)).min(1).max(8),
   rightsStatus: z.enum(["public_domain", "licensed"]),
