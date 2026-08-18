@@ -88,4 +88,7 @@ abandonné par le même administrateur.
 bun run lint
 bun run typecheck
 bun run build
+bun run test:e2e:public
 ```
+
+La préparation de production est détaillée dans `docs/production-runbook.md` et la recette du catalogue dans `docs/editorial-qa.md`.

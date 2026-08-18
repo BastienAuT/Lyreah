@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://build:build@localhost/build
+      NEON_AUTH_BASE_URL: https://auth.invalid
+      NEON_AUTH_COOKIE_SECRET: build-only-cookie-secret-at-least-32-characters
+      SUPABASE_URL: https://storage.invalid
+      SUPABASE_SERVICE_ROLE_KEY: build-only
+      SUPABASE_STORAGE_BUCKET: lyreah
+      SUPABASE_STORAGE_PREFIX: ci
+      NEXT_PUBLIC_SUPABASE_URL: https://storage.invalid
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: build-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      - run: bun test
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun run build
+
+  e2e:
+    if: ${{ vars.E2E_BASE_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
+      E2E_SIGNUP_EMAIL: ${{ secrets.E2E_SIGNUP_EMAIL }}
+      E2E_SIGNUP_PASSWORD: ${{ secrets.E2E_SIGNUP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium webkit
+      - name: Restore reader session
+        if: ${{ secrets.E2E_READER_STORAGE_STATE_B64 != '' }}
+        run: mkdir -p tests/.auth && echo "$E2E_STATE" | base64 --decode > tests/.auth/reader.json
+        env:
+          E2E_STATE: ${{ secrets.E2E_READER_STORAGE_STATE_B64 }}
+      - name: Restore admin session
+        if: ${{ secrets.E2E_ADMIN_STORAGE_STATE_B64 != '' }}
+        run: mkdir -p tests/.auth && echo "$E2E_STATE" | base64 --decode > tests/.auth/admin.json
+        env:
+          E2E_STATE: ${{ secrets.E2E_ADMIN_STORAGE_STATE_B64 }}
+      - run: bun run test:e2e
+        env:
+          E2E_READER_STORAGE_STATE: ${{ secrets.E2E_READER_STORAGE_STATE_B64 != '' && 'tests/.auth/reader.json' || '' }}
+          E2E_ADMIN_STORAGE_STATE: ${{ secrets.E2E_ADMIN_STORAGE_STATE_B64 != '' && 'tests/.auth/admin.json' || '' }}
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 14
