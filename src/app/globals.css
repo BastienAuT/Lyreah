@@ -1973,11 +1973,15 @@ html[data-reader-theme="night"] .reader-shell__nav > a:last-child {
 }
 
 .account-link {
+  overflow: hidden;
+  max-width: 180px;
   padding: 11px 18px;
   border: 1px solid rgba(109, 99, 136, 0.32);
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .search-button {

@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import { connection } from "next/server";
 import { catalogCoverPaths } from "@/catalog/cover-assets";
 import { ReaderPreviewCarousel } from "@/components/home/reader-preview-carousel";
+import { getCurrentUser } from "@/auth/session";
 
 const books = [
   {
@@ -36,7 +38,11 @@ const categories = [
   { label: "Voyage", slug: "voyage" },
 ];
 
-export default function Home() {
+export default async function Home() {
+  await connection();
+  const user = await getCurrentUser();
+  const accountLabel = user?.name?.trim() || "Mon profil";
+
   return (
     <main>
       <section className="hero-shell">
@@ -61,8 +67,12 @@ export default function Home() {
             >
               <span aria-hidden="true" />
             </Link>
-            <Link className="account-link" href="/auth/sign-in">
-              Se connecter
+            <Link
+              className="account-link"
+              href={user ? "/compte/settings" : "/auth/sign-in"}
+              aria-label={user ? `Ouvrir le profil de ${accountLabel}` : undefined}
+            >
+              {user ? accountLabel : "Se connecter"}
             </Link>
           </div>
         </header>
@@ -118,7 +128,7 @@ export default function Home() {
 
       <section className="promise-section" id="lecteur">
         <p className="eyebrow">Le lecteur Lyreah</p>
-        <h2>Une liseuse pensée pour rester dans l’histoire.</h2>
+        <h2>Une liseuse confortable et intuitive.</h2>
         <p className="promise-intro">
           Le lecteur adapte chaque EPUB à votre confort, mémorise votre
           progression et ajoute, si vous le souhaitez, une ambiance sonore et
