@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { catalogCoverPaths } from "@/catalog/cover-assets";
+import { ReaderPreviewCarousel } from "@/components/home/reader-preview-carousel";
 
 const books = [
   {
@@ -65,7 +66,7 @@ export default function Home() {
         <div className="hero" id="top">
           <div className="hero-copy">
             <p className="eyebrow">13 classiques français · lecture immersive</p>
-            <h1>Entrez dans les livres que vous aimez.</h1>
+            <h1>Les grands classiques prennent vie.</h1>
             <p className="hero-intro">
               Lisez gratuitement les grands classiques en français dans une liseuse
               confortable, accompagnée d’ambiances sonores que vous gardez toujours
@@ -77,7 +78,7 @@ export default function Home() {
                 <span aria-hidden="true">→</span>
               </Link>
               <a className="text-link" href="#experience">
-                Voir le lecteur
+                Découvrir l’expérience
               </a>
             </div>
 
@@ -91,54 +92,7 @@ export default function Home() {
           <div className="reader-scene" id="experience" aria-label="Aperçu du lecteur Lyreah">
             <div className="orb orb--one" />
             <div className="orb orb--two" />
-            <article className="reader-preview">
-              <header className="reader-preview__header">
-                <span>Page 3 sur 12</span>
-                <strong>La Guerre des mondes</strong>
-                <span className="reader-preview__appearance" aria-hidden="true">Aa</span>
-              </header>
-
-              <div className="reader-preview__stage">
-                <div className="reader-preview__atmosphere" aria-hidden="true">
-                  <i /><i /><i />
-                </div>
-                <div className="reader-preview__page">
-                  <small>Livre premier · Chapitre IV</small>
-                  <h2>L’étrange cylindre</h2>
-                  <p className="drop-cap">
-                    Au-delà des toits, une lueur rouge déchirait le ciel. Puis la
-                    première machine se dressa dans le silence.
-                  </p>
-                  <p>
-                    Personne ne bougeait. Le monde familier venait, en un instant,
-                    de devenir immense et inconnu.
-                  </p>
-                </div>
-              </div>
-
-              <footer className="reader-preview__footer">
-                <div className="reader-preview__player">
-                  <span aria-hidden="true">♫</span>
-                  <p><small>Ambiance</small><strong>Orage gothique</strong></p>
-                  <i aria-hidden="true" />
-                </div>
-                <div className="reader-preview__navigation" aria-hidden="true">
-                  <span>← Page précédente</span><span>Page suivante →</span>
-                </div>
-                <div className="reader-preview__progress" aria-hidden="true">
-                  <span>42 %</span>
-                  <b><i /></b>
-                </div>
-              </footer>
-
-              <Link
-                aria-label="Découvrir La Guerre des mondes"
-                className="reader-preview__link"
-                href="/livres/la-guerre-des-mondes"
-              >
-                Découvrir cette lecture <span aria-hidden="true">→</span>
-              </Link>
-            </article>
+            <ReaderPreviewCarousel />
           </div>
         </div>
 
