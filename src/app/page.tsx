@@ -114,17 +114,54 @@ export default function Home() {
           </div>
         </div>
 
-        <nav className="category-row" aria-label="Catégories de livres">
-          {categories.map((category) => (
-            <Link
-              href={`/catalogue?categorie=${category.slug}`}
-              key={category.slug}
-            >
-              {category.label}
-            </Link>
-          ))}
-        </nav>
       </section>
+
+      <section className="promise-section" id="lecteur">
+        <p className="eyebrow">Le lecteur Lyreah</p>
+        <h2>Une liseuse pensée pour rester dans l’histoire.</h2>
+        <p className="promise-intro">
+          Le lecteur adapte chaque EPUB à votre confort, mémorise votre
+          progression et ajoute, si vous le souhaitez, une ambiance sonore et
+          visuelle.
+        </p>
+        <div className="promise-grid">
+          <article>
+            <span>01</span>
+            <h3>Lecture sur mesure</h3>
+            <p>
+              Ajustez la taille, l’interlignage, la police, le thème et la
+              texture sans perdre votre page.
+            </p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>Reprise exacte</h3>
+            <p>
+              Retrouvez précisément l’endroit où vous vous êtes arrêté, sur
+              téléphone comme sur ordinateur.
+            </p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Immersion facultative</h3>
+            <p>
+              Choisissez parmi onze ambiances, réglez le volume et les effets,
+              ou coupez tout pour lire dans le silence.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <nav className="category-row" aria-label="Catégories de livres">
+        {categories.map((category) => (
+          <Link
+            href={`/catalogue?categorie=${category.slug}`}
+            key={category.slug}
+          >
+            {category.label}
+          </Link>
+        ))}
+      </nav>
 
       <section className="catalogue-section" id="catalogue">
         <div className="section-heading">
@@ -163,41 +200,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="promise-section" id="lecteur">
-        <p className="eyebrow">Le lecteur Lyreah</p>
-        <h2>Une liseuse pensée pour rester dans l’histoire.</h2>
-        <p className="promise-intro">
-          Le lecteur adapte chaque EPUB à votre confort, mémorise votre
-          progression et ajoute, si vous le souhaitez, une ambiance sonore et
-          visuelle.
-        </p>
-        <div className="promise-grid">
-          <article>
-            <span>01</span>
-            <h3>Lecture sur mesure</h3>
-            <p>
-              Ajustez la taille, l’interlignage, la police, le thème et la
-              texture sans perdre votre page.
-            </p>
-          </article>
-          <article>
-            <span>02</span>
-            <h3>Reprise exacte</h3>
-            <p>
-              Retrouvez précisément l’endroit où vous vous êtes arrêté, sur
-              téléphone comme sur ordinateur.
-            </p>
-          </article>
-          <article>
-            <span>03</span>
-            <h3>Immersion facultative</h3>
-            <p>
-              Choisissez parmi onze ambiances, réglez le volume et les effets,
-              ou coupez tout pour lire dans le silence.
-            </p>
-          </article>
-        </div>
-      </section>
     </main>
   );
 }

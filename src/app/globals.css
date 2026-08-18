@@ -2612,11 +2612,6 @@ h1 {
 
 .category-row {
   display: flex;
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 4;
   gap: 34px;
   align-items: center;
   justify-content: center;
