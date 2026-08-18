@@ -4,11 +4,18 @@ import { catalogCoverPaths } from "@/catalog/cover-assets";
 
 const books = [
   {
-    title: "Le Tour du monde en 80 jours",
-    author: "Jules Verne",
-    label: "Aventure",
-    slug: "tour-du-monde-en-80-jours",
-    cover: catalogCoverPaths["tour-du-monde-en-80-jours"],
+    title: "Frankenstein",
+    author: "Mary Shelley",
+    label: "Fantastique gothique",
+    slug: "frankenstein",
+    cover: catalogCoverPaths.frankenstein,
+  },
+  {
+    title: "Alice au pays des merveilles",
+    author: "Lewis Carroll",
+    label: "Merveilleux",
+    slug: "alice-au-pays-des-merveilles",
+    cover: catalogCoverPaths["alice-au-pays-des-merveilles"],
   },
   {
     title: "Vingt mille lieues sous les mers",
@@ -17,22 +24,15 @@ const books = [
     slug: "vingt-mille-lieues-sous-les-mers",
     cover: catalogCoverPaths["vingt-mille-lieues-sous-les-mers"],
   },
-  {
-    title: "Voyage au centre de la Terre",
-    author: "Jules Verne",
-    label: "Exploration fantastique",
-    slug: "voyage-au-centre-de-la-terre",
-    cover: catalogCoverPaths["voyage-au-centre-de-la-terre"],
-  },
 ];
 
 const categories = [
-  "Fantastique",
-  "Aventure",
-  "Classiques",
-  "Mystère",
-  "Poésie",
-  "Science-fiction",
+  { label: "Fantastique", slug: "fantastique" },
+  { label: "Aventure", slug: "aventure" },
+  { label: "Classiques", slug: "classiques" },
+  { label: "Jeunesse", slug: "jeunesse" },
+  { label: "Science-fiction", slug: "science-fiction" },
+  { label: "Voyage", slug: "voyage" },
 ];
 
 export default function Home() {
@@ -47,15 +47,15 @@ export default function Home() {
           </a>
 
           <nav className="main-nav" aria-label="Rubriques">
-            <a href="#catalogue">Découvrir</a>
+            <Link href="/catalogue">Catalogue</Link>
             <Link href="/bibliotheque">Ma bibliothèque</Link>
-            <a href="#ambiances">Ambiances</a>
+            <a href="#experience">Le lecteur</a>
           </nav>
 
           <div className="header-actions">
-            <button className="search-button" type="button" aria-label="Rechercher">
+            <Link className="search-button" href="/catalogue" aria-label="Rechercher un livre">
               <span aria-hidden="true" />
-            </button>
+            </Link>
             <Link className="account-link" href="/auth/sign-in">
               Se connecter
             </Link>
@@ -64,94 +64,98 @@ export default function Home() {
 
         <div className="hero" id="top">
           <div className="hero-copy">
-            <p className="eyebrow">Lire. Écouter. S’évader.</p>
-            <h1>Chaque histoire mérite son atmosphère.</h1>
+            <p className="eyebrow">13 classiques français · lecture immersive</p>
+            <h1>Entrez dans les livres que vous aimez.</h1>
             <p className="hero-intro">
-              Redécouvrez les grands classiques dans une expérience de lecture
-              immersive, accompagnée d’ambiances sonores pensées pour chaque univers.
+              Lisez gratuitement les grands classiques en français dans une liseuse
+              confortable, accompagnée d’ambiances sonores que vous gardez toujours
+              sous votre contrôle.
             </p>
             <div className="hero-actions">
               <Link className="button button--primary" href="/catalogue">
-                Explorer la bibliothèque
+                Choisir un livre
                 <span aria-hidden="true">→</span>
               </Link>
               <a className="text-link" href="#experience">
-                Découvrir l’expérience
+                Voir le lecteur
               </a>
             </div>
 
-            <div className="hero-note">
-              <span className="note-icon" aria-hidden="true">♪</span>
-              <p>
-                <strong>Lecture synchronisée</strong>
-                Reprenez votre livre exactement là où vous l’avez laissé.
-              </p>
+            <div className="hero-facts" aria-label="Les avantages de Lyreah">
+              <p><strong>11</strong><span>ambiances par livre</span></p>
+              <p><strong>100 %</strong><span>en français</span></p>
+              <p><strong>Libre</strong><span>domaine public</span></p>
             </div>
           </div>
 
-          <div className="reader-scene" aria-label="Aperçu du lecteur Lyreah">
+          <div className="reader-scene" id="experience" aria-label="Aperçu du lecteur Lyreah">
             <div className="orb orb--one" />
             <div className="orb orb--two" />
-            <article className="reader-card">
-              <div className="reader-topbar">
-                <span>Chapitre VII</span>
-                <span className="reader-progress">42%</span>
-              </div>
-              <div className="reader-page">
-                <p className="drop-cap">
-                  La lune éclairait à peine le sentier lorsque les arbres
-                  commencèrent à murmurer autour de nous.
-                </p>
-                <p>
-                  Je ralentis le pas. Dans le silence de la forêt, chaque souffle
-                  semblait porter le souvenir d’une histoire oubliée.
-                </p>
-                <p>
-                  Au loin, une lumière douce oscillait entre les branches, comme
-                  une invitation à poursuivre notre voyage.
-                </p>
-              </div>
-              <div className="reader-footer">
-                <span>Aa</span>
-                <span className="page-dots"><i /><i className="active" /><i /></span>
-                <span>☾</span>
-              </div>
-            </article>
+            <article className="reader-preview">
+              <header className="reader-preview__header">
+                <span>Page 3 sur 12</span>
+                <strong>La Guerre des mondes</strong>
+                <span className="reader-preview__appearance" aria-hidden="true">Aa</span>
+              </header>
 
-            <article className="sound-card" id="ambiances">
-              <div className="sound-cover" aria-hidden="true">
-                <span>♪</span>
+              <div className="reader-preview__stage">
+                <div className="reader-preview__atmosphere" aria-hidden="true">
+                  <i /><i /><i />
+                </div>
+                <div className="reader-preview__page">
+                  <small>Livre premier · Chapitre IV</small>
+                  <h2>L’étrange cylindre</h2>
+                  <p className="drop-cap">
+                    Au-delà des toits, une lueur rouge déchirait le ciel. Puis la
+                    première machine se dressa dans le silence.
+                  </p>
+                  <p>
+                    Personne ne bougeait. Le monde familier venait, en un instant,
+                    de devenir immense et inconnu.
+                  </p>
+                </div>
               </div>
-              <div className="sound-copy">
-                <small>Ambiance en cours</small>
-                <strong>Forêt enchantée</strong>
-                <span>Pluie douce · Feuillage</span>
-              </div>
-              <button className="pause-button" type="button" aria-label="Mettre en pause">
-                <i />
-                <i />
-              </button>
+
+              <footer className="reader-preview__footer">
+                <div className="reader-preview__player">
+                  <span aria-hidden="true">♫</span>
+                  <p><small>Ambiance du livre</small><strong>Orage gothique</strong></p>
+                  <i aria-hidden="true" />
+                </div>
+                <div className="reader-preview__navigation" aria-hidden="true">
+                  <span>←</span><span>Page suivante →</span>
+                </div>
+                <div className="reader-preview__progress" aria-hidden="true"><i /></div>
+              </footer>
+
+              <Link
+                aria-label="Découvrir La Guerre des mondes"
+                className="reader-preview__link"
+                href="/livres/la-guerre-des-mondes"
+              >
+                Découvrir cette lecture <span aria-hidden="true">→</span>
+              </Link>
             </article>
           </div>
         </div>
 
-        <div className="category-row" aria-label="Catégories de livres">
+        <nav className="category-row" aria-label="Catégories de livres">
           {categories.map((category) => (
-            <a href="#catalogue" key={category}>
-              {category}
-            </a>
+            <Link href={`/catalogue?categorie=${category.slug}`} key={category.slug}>
+              {category.label}
+            </Link>
           ))}
-        </div>
+        </nav>
       </section>
 
       <section className="catalogue-section" id="catalogue">
         <div className="section-heading">
           <div>
             <p className="eyebrow">La sélection Lyreah</p>
-            <h2>Des classiques à vivre autrement</h2>
+            <h2>Trois univers pour commencer</h2>
           </div>
           <Link className="text-link" href="/catalogue">
-            Voir tous les livres <span aria-hidden="true">→</span>
+            Voir les 13 livres <span aria-hidden="true">→</span>
           </Link>
         </div>
 
@@ -172,33 +176,31 @@ export default function Home() {
                 />
               </Link>
               <p className="book-label">{book.label}</p>
-              <h3>
-                <Link href={`/livres/${book.slug}`}>{book.title}</Link>
-              </h3>
+              <h3><Link href={`/livres/${book.slug}`}>{book.title}</Link></h3>
               <p>{book.author}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="promise-section" id="experience">
-        <p className="eyebrow">Une nouvelle manière de lire</p>
-        <h2>Le livre reste au centre. L’atmosphère ouvre la porte.</h2>
+      <section className="promise-section">
+        <p className="eyebrow">Le livre reste au centre</p>
+        <h2>Une liseuse conçue pour disparaître derrière l’histoire.</h2>
         <div className="promise-grid">
           <article>
             <span>01</span>
-            <h3>Une lecture à votre rythme</h3>
-            <p>Typographie, thème et mise en page s’adaptent à votre confort.</p>
+            <h3>Votre confort, vraiment</h3>
+            <p>Taille, interlignage, police, thème et texture s’adaptent sans perdre votre page.</p>
           </article>
           <article id="bibliotheque">
             <span>02</span>
             <h3>Votre progression préservée</h3>
-            <p>Votre bibliothèque vous attend sur téléphone, tablette et ordinateur.</p>
+            <p>Reprenez exactement où vous vous êtes arrêté, sur téléphone comme sur ordinateur.</p>
           </article>
           <article>
             <span>03</span>
-            <h3>Une ambiance sur mesure</h3>
-            <p>Associez chaque histoire à un paysage sonore discret et immersif.</p>
+            <h3>Le son reste facultatif</h3>
+            <p>Choisissez parmi onze ambiances, réglez leur intensité ou lisez dans le silence.</p>
           </article>
         </div>
       </section>
