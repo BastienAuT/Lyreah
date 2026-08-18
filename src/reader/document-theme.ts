@@ -23,14 +23,21 @@ export const readerPalettes = {
   },
 } as const satisfies Record<ReaderTheme, Record<string, string>>;
 
+export const readerFontFamilies = {
+  classic: "Georgia, 'Times New Roman', serif",
+  elegant: "'Palatino Linotype', Palatino, 'Book Antiqua', serif",
+  accessible: "Arial, Helvetica, sans-serif",
+} as const;
+
 const paperTexture =
   "radial-gradient(circle at 18% 24%, rgba(90,70,48,.025) 0 1px, transparent 1.5px), radial-gradient(circle at 76% 62%, rgba(90,70,48,.02) 0 1px, transparent 1.5px)";
 
 export function getReaderDocumentThemeCss(
-  preferences: Pick<ReaderPreferences, "texture" | "theme">,
+  preferences: ReaderPreferences,
 ) {
   const palette = readerPalettes[preferences.theme];
   const texture = preferences.texture ? paperTexture : "none";
+  const fontFamily = readerFontFamilies[preferences.font];
 
   return `
 html {
@@ -44,6 +51,17 @@ body {
   background-color: transparent !important;
   background-image: none !important;
   color: ${palette.text} !important;
+  font-family: ${fontFamily} !important;
+  font-size: ${preferences.fontSize}% !important;
+  line-height: ${preferences.lineHeight} !important;
+}
+body p,
+body li,
+body blockquote,
+body dd,
+body dt {
+  font-family: inherit !important;
+  line-height: ${preferences.lineHeight} !important;
 }
 `;
 }

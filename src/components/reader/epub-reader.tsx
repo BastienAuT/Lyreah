@@ -7,6 +7,7 @@ import type Rendition from "epubjs/types/rendition";
 import type { Location } from "epubjs/types/rendition";
 import {
   getReaderDocumentThemeCss,
+  readerFontFamilies,
   readerPalettes,
   READER_DOCUMENT_THEME_STYLE_ID,
 } from "@/reader/document-theme";
@@ -26,12 +27,6 @@ type SavedProgress = {
   percentageBasisPoints: number;
 };
 type ProgressResponse = { progress: SavedProgress | null };
-
-const readerFonts = {
-  classic: "Georgia, 'Times New Roman', serif",
-  elegant: "'Palatino Linotype', Palatino, 'Book Antiqua', serif",
-  accessible: "Arial, Helvetica, sans-serif",
-} as const;
 
 function applyReaderDocumentTheme(
   document: Document,
@@ -68,7 +63,7 @@ function isEditableTarget(target: EventTarget | null) {
 
 function applyReaderPreferences(rendition: Rendition, preferences: ReaderPreferences) {
   const palette = readerPalettes[preferences.theme];
-  const font = readerFonts[preferences.font];
+  const font = readerFontFamilies[preferences.font];
 
   rendition.themes.override("color", palette.text, true);
   rendition.themes.override("font-family", font, true);
@@ -80,6 +75,10 @@ function applyReaderPreferences(rendition: Rendition, preferences: ReaderPrefere
   getCurrentContents(rendition).forEach((contents) =>
     applyReaderDocumentTheme(contents.document, preferences),
   );
+}
+
+function typographySignature(preferences: ReaderPreferences) {
+  return `${preferences.font}:${preferences.fontSize}:${preferences.lineHeight}`;
 }
 
 async function readApiError(response: Response) {
@@ -99,6 +98,11 @@ export function EpubReader({
   const renditionRef = useRef<Rendition | null>(null);
   const preferencesRef = useRef(DEFAULT_READER_PREFERENCES);
   const preferencesLoadedRef = useRef(false);
+  const currentCfiRef = useRef<string | null>(null);
+  const lastTypographyRef = useRef<string | null>(null);
+  const reflowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reflowRequestRef = useRef(0);
+  const reflowingRef = useRef(false);
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
@@ -109,13 +113,14 @@ export function EpubReader({
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
   const [preferences, setPreferences] = useState(DEFAULT_READER_PREFERENCES);
+  const [isReflowing, setIsReflowing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
 
   const move = useCallback(async (direction: "previous" | "next") => {
     const rendition = renditionRef.current;
-    if (!rendition) return;
+    if (!rendition || reflowingRef.current) return;
 
     try {
       if (direction === "previous") {
@@ -150,12 +155,52 @@ export function EpubReader({
       );
     }
 
-    if (renditionRef.current) applyReaderPreferences(renditionRef.current, preferences);
+    const rendition = renditionRef.current;
+    if (rendition) {
+      const previousTypography = lastTypographyRef.current;
+      const nextTypography = typographySignature(preferences);
+      applyReaderPreferences(rendition, preferences);
+      lastTypographyRef.current = nextTypography;
+
+      if (
+        status === "ready" &&
+        previousTypography !== null &&
+        previousTypography !== nextTypography
+      ) {
+        if (reflowTimerRef.current) clearTimeout(reflowTimerRef.current);
+        const requestId = reflowRequestRef.current + 1;
+        reflowRequestRef.current = requestId;
+        reflowingRef.current = true;
+        setIsReflowing(true);
+        reflowTimerRef.current = setTimeout(async () => {
+          reflowTimerRef.current = null;
+          const anchor = currentCfiRef.current;
+
+          try {
+            rendition.clear();
+            await rendition.display(anchor ?? undefined);
+          } catch {
+            try {
+              await rendition.display();
+            } catch {
+              if (reflowRequestRef.current === requestId) {
+                setError("La mise en page n’a pas pu être recalculée.");
+              }
+            }
+          } finally {
+            if (reflowRequestRef.current === requestId) {
+              reflowingRef.current = false;
+              setIsReflowing(false);
+            }
+          }
+        }, 120);
+      }
+    }
 
     return () => {
       delete document.documentElement.dataset.readerTheme;
     };
-  }, [preferences]);
+  }, [preferences, status]);
 
   useEffect(() => {
     let disposed = false;
@@ -230,6 +275,7 @@ export function EpubReader({
 
         bookRef.current = book;
         renditionRef.current = rendition;
+        lastTypographyRef.current = typographySignature(preferencesRef.current);
         rendition.themes.default({
           html: {
             "background-color": "transparent !important",
@@ -282,6 +328,8 @@ export function EpubReader({
 
         rendition.on("relocated", (location: Location) => {
           if (disposed) return;
+
+          currentCfiRef.current = location.start.cfi;
 
           const current = book.navigation.get(location.start.href);
           const displayedStart = location.start.displayed;
@@ -361,11 +409,17 @@ export function EpubReader({
       disposed = true;
       window.removeEventListener("pagehide", saveBeforeLeaving);
       if (saveTimer) clearTimeout(saveTimer);
+      if (reflowTimerRef.current) clearTimeout(reflowTimerRef.current);
+      reflowTimerRef.current = null;
+      reflowRequestRef.current += 1;
+      reflowingRef.current = false;
       saveBeforeLeaving();
       renditionRef.current?.destroy();
       bookRef.current?.destroy();
       renditionRef.current = null;
       bookRef.current = null;
+      currentCfiRef.current = null;
+      lastTypographyRef.current = null;
       viewer?.replaceChildren();
     };
   }, [bookId, move]);
@@ -433,7 +487,7 @@ export function EpubReader({
         </div>
         <div className="epub-reader__navigation" aria-label="Navigation dans le livre">
           <button
-            disabled={status !== "ready" || atStart}
+            disabled={status !== "ready" || isReflowing || atStart}
             onClick={() => move("previous")}
             type="button"
           >
@@ -441,7 +495,7 @@ export function EpubReader({
             Page précédente
           </button>
           <button
-            disabled={status !== "ready" || atEnd}
+            disabled={status !== "ready" || isReflowing || atEnd}
             onClick={() => move("next")}
             type="button"
           >
