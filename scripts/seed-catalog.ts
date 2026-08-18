@@ -1,6 +1,14 @@
 import { count, eq, inArray } from "drizzle-orm";
 import { getDatabase } from "../src/db";
-import { authors, books, booksToAuthors, booksToCategories, categories } from "../src/db/schema";
+import {
+  authors,
+  books,
+  booksToAuthors,
+  booksToCategories,
+  booksToSoundscapes,
+  categories,
+  soundscapes,
+} from "../src/db/schema";
 import {
   FRENCH_PUBLIC_DOMAIN_RIGHTS_STATEMENT,
   RETIRED_ENGLISH_BOOK_SLUGS,
@@ -139,7 +147,27 @@ const seedBooks = [
   },
 ] as const;
 
+const testBookSlugs = ["la-nuit-des-lucioles", "les-sentiers-de-lyreah"] as const;
+
+const defaultSoundscapeByBook = {
+  frankenstein: "Orage gothique",
+  "alice-au-pays-des-merveilles": "Clairière nocturne",
+  "tour-du-monde-en-80-jours": "Train de nuit",
+  "vingt-mille-lieues-sous-les-mers": "À bord du sous-marin",
+  "voyage-au-centre-de-la-terre": "Feu de cheminée",
+  "la-machine-a-explorer-le-temps": "Minuit studieux",
+  "la-guerre-des-mondes": "Orage gothique",
+  "de-la-terre-a-la-lune": "Minuit studieux",
+  "le-livre-de-la-jungle": "Aube aux oiseaux",
+  "les-malheurs-de-sophie": "Aube aux oiseaux",
+  "l-ile-au-tresor": "Rive tranquille",
+  "en-famille": "Feu de cheminée",
+  "robinson-crusoe": "Rive tranquille",
+} as const;
+
 const database = getDatabase();
+
+await database.delete(books).where(inArray(books.slug, [...testBookSlugs]));
 
 for (const seedBook of seedBooks) {
   const [author] = await database
@@ -198,6 +226,38 @@ await database
   .update(books)
   .set({ isFeatured: false, publishedAt: null, updatedAt: new Date() })
   .where(inArray(books.slug, [...RETIRED_ENGLISH_BOOK_SLUGS]));
+
+const [launchBooks, activeSoundscapes] = await Promise.all([
+  database
+    .select({ id: books.id, slug: books.slug })
+    .from(books)
+    .where(inArray(books.slug, seedBooks.map((book) => book.slug))),
+  database
+    .select({ id: soundscapes.id, title: soundscapes.title })
+    .from(soundscapes)
+    .where(eq(soundscapes.isActive, true)),
+]);
+
+for (const book of launchBooks) {
+  await database
+    .update(booksToSoundscapes)
+    .set({ isDefault: false })
+    .where(eq(booksToSoundscapes.bookId, book.id));
+
+  const defaultTitle =
+    defaultSoundscapeByBook[book.slug as keyof typeof defaultSoundscapeByBook];
+
+  for (const soundscape of activeSoundscapes) {
+    const isDefault = soundscape.title === defaultTitle;
+    await database
+      .insert(booksToSoundscapes)
+      .values({ bookId: book.id, soundscapeId: soundscape.id, isDefault })
+      .onConflictDoUpdate({
+        target: [booksToSoundscapes.bookId, booksToSoundscapes.soundscapeId],
+        set: { isDefault },
+      });
+  }
+}
 
 const seeded = await database.select({ title: books.title }).from(books).where(eq(books.isFeatured, true));
 const categoryCounts = await database
