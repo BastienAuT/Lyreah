@@ -22,6 +22,13 @@
       "when": 1786446012419,
       "tag": "0002_productive_patch",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787054335219,
+      "tag": "0003_short_falcon",
+      "breakpoints": true
     }
   ]
 }

@@ -12,7 +12,6 @@ import {
   READER_DOCUMENT_THEME_STYLE_ID,
 } from "@/reader/document-theme";
 import {
-  DEFAULT_READER_PREFERENCES,
   parseReaderPreferences,
   READER_PREFERENCES_STORAGE_KEY,
   type ReaderPreferences,
@@ -88,15 +87,17 @@ async function readApiError(response: Response) {
 
 export function EpubReader({
   bookId,
+  initialPreferences,
   title,
 }: {
   bookId: string;
+  initialPreferences: ReaderPreferences;
   title: string;
 }) {
   const viewerRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<Book | null>(null);
   const renditionRef = useRef<Rendition | null>(null);
-  const preferencesRef = useRef(DEFAULT_READER_PREFERENCES);
+  const preferencesRef = useRef(initialPreferences);
   const preferencesLoadedRef = useRef(false);
   const currentCfiRef = useRef<string | null>(null);
   const lastTypographyRef = useRef<string | null>(null);
@@ -112,7 +113,7 @@ export function EpubReader({
   const [progress, setProgress] = useState(0);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
-  const [preferences, setPreferences] = useState(DEFAULT_READER_PREFERENCES);
+  const [preferences, setPreferences] = useState(initialPreferences);
   const [isReflowing, setIsReflowing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
@@ -135,14 +136,12 @@ export function EpubReader({
 
   useEffect(() => {
     queueMicrotask(() => {
-      const restored = parseReaderPreferences(
-        window.localStorage.getItem(READER_PREFERENCES_STORAGE_KEY),
-      );
+      const restored = parseReaderPreferences(JSON.stringify(initialPreferences));
       preferencesRef.current = restored;
       preferencesLoadedRef.current = true;
-      setPreferences(restored);
+      setPreferences({ ...restored });
     });
-  }, []);
+  }, [initialPreferences]);
 
   useEffect(() => {
     preferencesRef.current = preferences;
@@ -201,6 +200,20 @@ export function EpubReader({
       delete document.documentElement.dataset.readerTheme;
     };
   }, [preferences, status]);
+
+  useEffect(() => {
+    if (!preferencesLoadedRef.current) return;
+
+    const timeout = window.setTimeout(() => {
+      void fetch("/api/account/reader-preferences", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(preferences),
+      });
+    }, 650);
+
+    return () => window.clearTimeout(timeout);
+  }, [preferences]);
 
   useEffect(() => {
     let disposed = false;

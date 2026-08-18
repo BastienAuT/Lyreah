@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -10,6 +11,10 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import {
+  DEFAULT_READER_PREFERENCES,
+  type ReaderPreferences,
+} from "@/reader/preferences";
 
 export const bookProcessingStatus = pgEnum("book_processing_status", [
   "pending",
@@ -38,6 +43,10 @@ export const profiles = pgTable(
   {
     id: text("id").primaryKey(),
     displayName: text("display_name").notNull(),
+    readerPreferences: jsonb("reader_preferences")
+      .$type<ReaderPreferences>()
+      .default(DEFAULT_READER_PREFERENCES)
+      .notNull(),
     role: userRole("role").default("reader").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { authClient } from "@/auth/client";
+import { frenchAuthLocalization } from "@/auth/localization";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -17,6 +18,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       onSessionChange={() => router.refresh()}
       redirectTo="/bibliotheque"
       defaultTheme="light"
+      account={{ basePath: "/compte" }}
+      avatar
+      localization={frenchAuthLocalization}
       Link={Link}
     >
       {children}

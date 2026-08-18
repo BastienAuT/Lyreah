@@ -1,0 +1,1 @@
+ALTER TABLE "profiles" ADD COLUMN "reader_preferences" jsonb DEFAULT '{"theme":"paper","font":"classic","fontSize":108,"lineHeight":1.8,"texture":true}'::jsonb NOT NULL;

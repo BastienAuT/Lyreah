@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireCurrentUser } from "@/auth/session";
+import { ensureCurrentProfile } from "@/auth/session";
 import { getCatalogBookBySlug } from "@/catalog/queries";
 import { EpubReader } from "@/components/reader/epub-reader";
 import { canReadBook } from "@/reader/access-rules";
+import { parseReaderPreferences } from "@/reader/preferences";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function ReaderPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  await requireCurrentUser();
+  const { profile } = await ensureCurrentProfile();
   const { slug } = await params;
   const book = await getCatalogBookBySlug(slug);
 
@@ -49,7 +50,13 @@ export default async function ReaderPage({
           <span aria-hidden="true">×</span> Quitter
         </Link>
       </nav>
-      <EpubReader bookId={book.id} title={book.title} />
+      <EpubReader
+        bookId={book.id}
+        initialPreferences={parseReaderPreferences(
+          JSON.stringify(profile.readerPreferences),
+        )}
+        title={book.title}
+      />
     </main>
   );
 }

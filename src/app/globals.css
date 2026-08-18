@@ -116,6 +116,288 @@ button {
   line-height: 1;
 }
 
+.account-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.account-library-link {
+  color: var(--forest);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.account-library-link:hover {
+  color: var(--ink);
+}
+
+.account-eyebrow {
+  margin: 52px 0 12px;
+  color: var(--forest-light);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+}
+
+.account-heading {
+  margin: 0 0 14px;
+}
+
+.account-intro {
+  max-width: 620px;
+  margin: 0 0 42px;
+  color: var(--text-muted);
+  font-family: Georgia, "Times New Roman", serif;
+  line-height: 1.65;
+}
+
+.account-preferences-card {
+  width: calc(100% - 288px);
+  margin: 28px 0 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  box-shadow: 0 16px 50px rgba(52, 49, 67, 0.06);
+}
+
+.account-preferences-card__heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px;
+  gap: 28px;
+  align-items: center;
+  padding: 26px;
+}
+
+.account-preferences-card__heading p {
+  margin: 0 0 7px;
+  color: var(--forest-light);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.account-preferences-card__heading h2 {
+  margin: 0 0 7px;
+  font-family: "Cormorant Garamond Variable", Georgia, serif;
+  font-size: 1.65rem;
+  line-height: 1.1;
+}
+
+.account-preferences-card__heading span {
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.account-reader-preview {
+  display: grid;
+  min-height: 92px;
+  align-content: center;
+  gap: 5px;
+  padding: 18px;
+  border: 1px solid rgba(52, 49, 67, 0.12);
+  border-radius: 5px 12px 12px 5px;
+  box-shadow: -5px 8px 18px rgba(52, 49, 67, 0.1);
+}
+
+.account-reader-preview small {
+  font-size: 0.5rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.account-reader-preview strong {
+  font-weight: 500;
+}
+
+.account-reader-preview--paper { background: #f7efe3; color: #312d2a; }
+.account-reader-preview--sepia { background: #ead8b9; color: #493a2c; }
+.account-reader-preview--night { background: #25232b; color: #f2e9df; }
+.account-reader-preview--classic { font-family: Georgia, serif; }
+.account-reader-preview--elegant { font-family: Palatino, "Book Antiqua", serif; }
+.account-reader-preview--accessible { font-family: Arial, sans-serif; }
+
+.account-preferences-card__controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px 28px;
+  padding: 26px;
+  border-top: 1px solid var(--border);
+}
+
+.account-preferences-card fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.account-preferences-card legend,
+.account-preference-range > span {
+  margin-bottom: 10px;
+  color: var(--foreground);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.account-preference-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+
+.account-preference-options button {
+  display: grid;
+  min-width: 0;
+  min-height: 48px;
+  gap: 6px;
+  padding: 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  place-items: center;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 0.68rem;
+}
+
+.account-preference-options button:hover,
+.account-preference-options button[aria-pressed="true"] {
+  border-color: var(--forest-light);
+  color: var(--foreground);
+}
+
+.account-preference-options button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--lavender) 48%, transparent);
+  box-shadow: inset 0 0 0 1px rgba(109, 99, 136, 0.15);
+}
+
+.account-theme-swatch {
+  display: block;
+  width: 100%;
+  height: 15px;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px rgba(52, 49, 67, 0.1);
+}
+
+.account-theme-swatch--paper { background: #f7efe3; }
+.account-theme-swatch--sepia { background: #ead8b9; }
+.account-theme-swatch--night { background: #25232b; }
+.account-font-option--classic { font-family: Georgia, serif; }
+.account-font-option--elegant { font-family: Palatino, "Book Antiqua", serif; }
+.account-font-option--accessible { font-family: Arial, sans-serif; }
+
+.account-preference-range {
+  display: grid;
+  align-content: center;
+}
+
+.account-preference-range > span {
+  display: flex;
+  justify-content: space-between;
+}
+
+.account-preference-range output {
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+.account-preference-range input {
+  width: 100%;
+  accent-color: var(--forest);
+}
+
+.account-preference-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+}
+
+.account-preference-toggle > span {
+  display: grid;
+  gap: 4px;
+}
+
+.account-preference-toggle strong { font-size: 0.75rem; }
+.account-preference-toggle small { color: var(--muted-foreground); font-size: 0.68rem; }
+.account-preference-toggle input { width: 36px; height: 20px; accent-color: var(--forest); }
+
+.account-preferences-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-height: 76px;
+  padding: 16px 26px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
+}
+
+.account-save-status {
+  margin: 0 auto 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+}
+
+.account-save-status--error { color: #9c3f4b; }
+.account-save-status--saved { color: #477157; }
+
+.account-reset-button,
+.account-save-button {
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.account-reset-button {
+  border: 1px solid var(--border);
+  background: transparent;
+}
+
+.account-save-button {
+  border: 1px solid var(--forest);
+  background: var(--forest);
+  color: white;
+}
+
+.account-save-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+@media (max-width: 768px) {
+  .account-preferences-card {
+    width: 100%;
+  }
+
+  .account-preferences-card__heading,
+  .account-preferences-card__controls {
+    grid-template-columns: 1fr;
+  }
+
+  .account-reader-preview {
+    display: none;
+  }
+
+  .account-preferences-card__footer {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .account-save-status {
+    width: 100%;
+  }
+}
+
 .library-card {
   padding: 28px;
   border: 1px solid var(--line);
