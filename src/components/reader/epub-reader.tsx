@@ -2,14 +2,21 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type Book from "epubjs/types/book";
+import type Contents from "epubjs/types/contents";
 import type Rendition from "epubjs/types/rendition";
 import type { Location } from "epubjs/types/rendition";
+import {
+  getReaderDocumentThemeCss,
+  readerPalettes,
+  READER_DOCUMENT_THEME_STYLE_ID,
+} from "@/reader/document-theme";
 import {
   DEFAULT_READER_PREFERENCES,
   parseReaderPreferences,
   READER_PREFERENCES_STORAGE_KEY,
   type ReaderPreferences,
 } from "@/reader/preferences";
+import { AmbientBackdrop } from "./ambient-backdrop";
 import { AmbientAudioPlayer } from "./ambient-audio-player";
 import { ReaderAppearancePanel } from "./reader-appearance-panel";
 
@@ -20,28 +27,49 @@ type SavedProgress = {
 };
 type ProgressResponse = { progress: SavedProgress | null };
 
-const readerPalettes = {
-  paper: { page: "#f4eadb", text: "#30292d", heading: "#332b31", link: "#665b82" },
-  sepia: { page: "#ead8b9", text: "#392d25", heading: "#36271f", link: "#76563f" },
-  night: { page: "#211f27", text: "#e8dfd2", heading: "#f2e8dc", link: "#c2b5e0" },
-} as const;
-
 const readerFonts = {
   classic: "Georgia, 'Times New Roman', serif",
   elegant: "'Palatino Linotype', Palatino, 'Book Antiqua', serif",
   accessible: "Arial, Helvetica, sans-serif",
 } as const;
 
+function applyReaderDocumentTheme(
+  document: Document,
+  preferences: ReaderPreferences,
+) {
+  let style = document.getElementById(
+    READER_DOCUMENT_THEME_STYLE_ID,
+  ) as HTMLStyleElement | null;
+
+  if (!style) {
+    style = document.createElement("style");
+    style.id = READER_DOCUMENT_THEME_STYLE_ID;
+    (document.head ?? document.documentElement).append(style);
+  }
+
+  document.documentElement.setAttribute("data-reader-theme", preferences.theme);
+  style.textContent = getReaderDocumentThemeCss(preferences);
+}
+
+function getCurrentContents(rendition: Rendition) {
+  // epub.js returns Contents[] at runtime, although its published type declares Contents.
+  const contents = rendition.getContents() as unknown as Contents | Contents[];
+  return Array.isArray(contents) ? contents : contents ? [contents] : [];
+}
+
+function isEditableTarget(target: EventTarget | null) {
+  const element = target as HTMLElement | null;
+  return Boolean(
+    element &&
+      (["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(element.tagName) ||
+        element.isContentEditable),
+  );
+}
+
 function applyReaderPreferences(rendition: Rendition, preferences: ReaderPreferences) {
   const palette = readerPalettes[preferences.theme];
   const font = readerFonts[preferences.font];
-  const texture = preferences.texture
-    ? "radial-gradient(circle at 18% 24%, rgba(90,70,48,.025) 0 1px, transparent 1.5px), radial-gradient(circle at 76% 62%, rgba(90,70,48,.02) 0 1px, transparent 1.5px)"
-    : "none";
 
-  rendition.themes.override("background-color", palette.page, true);
-  rendition.themes.override("background-image", texture, true);
-  rendition.themes.override("background-size", "17px 19px, 23px 29px", true);
   rendition.themes.override("color", palette.text, true);
   rendition.themes.override("font-family", font, true);
   rendition.themes.override("line-height", String(preferences.lineHeight), true);
@@ -49,6 +77,9 @@ function applyReaderPreferences(rendition: Rendition, preferences: ReaderPrefere
 
   rendition.themes.override("--lyreah-heading-color", palette.heading, true);
   rendition.themes.override("--lyreah-link-color", palette.link, true);
+  getCurrentContents(rendition).forEach((contents) =>
+    applyReaderDocumentTheme(contents.document, preferences),
+  );
 }
 
 async function readApiError(response: Response) {
@@ -201,10 +232,10 @@ export function EpubReader({
         renditionRef.current = rendition;
         rendition.themes.default({
           html: {
-            "background-color": "#f5eee2 !important",
+            "background-color": "transparent !important",
           },
           body: {
-            "background-color": "#f5eee2 !important",
+            "background-color": "transparent !important",
             color: "#3f3842",
             "font-family": "Georgia, 'Times New Roman', serif",
             "line-height": "1.75",
@@ -236,6 +267,16 @@ export function EpubReader({
           },
           a: { color: "var(--lyreah-link-color, #665b82)" },
           img: { "max-width": "100%" },
+        });
+        rendition.hooks.content.register((contents: Contents) => {
+          applyReaderDocumentTheme(contents.document, preferencesRef.current);
+          contents.document.addEventListener("keydown", (event) => {
+            if (isEditableTarget(event.target)) return;
+            if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+              event.preventDefault();
+              void move(event.key === "ArrowLeft" ? "previous" : "next");
+            }
+          });
         });
         applyReaderPreferences(rendition, preferencesRef.current);
 
@@ -278,8 +319,10 @@ export function EpubReader({
           setAtEnd(location.atEnd);
           setError("");
           viewer.classList.remove("is-page-entering");
-          void viewer.offsetWidth;
-          viewer.classList.add("is-page-entering");
+          if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            void viewer.offsetWidth;
+            viewer.classList.add("is-page-entering");
+          }
           scheduleSave({
             cfi: location.start.cfi,
             percentageBasisPoints: Math.round(percentage * 100),
@@ -325,18 +368,12 @@ export function EpubReader({
       bookRef.current = null;
       viewer?.replaceChildren();
     };
-  }, [bookId]);
+  }, [bookId, move]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       const target = event.target;
-      if (
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLButtonElement ||
-        target instanceof HTMLSelectElement
-      ) {
-        return;
-      }
+      if (isEditableTarget(target)) return;
 
       if (event.key === "ArrowLeft") {
         event.preventDefault();
@@ -373,6 +410,7 @@ export function EpubReader({
       </header>
 
       <div className="epub-reader__stage">
+        <AmbientBackdrop />
         <div className="epub-reader__viewer" ref={viewerRef} />
         {status === "loading" ? (
           <div className="epub-reader__notice" role="status">

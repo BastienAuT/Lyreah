@@ -53,6 +53,21 @@ describe("parseSoundscapeManifest", () => {
     expect(manifest.layers[1]?.intervalSeconds).toBe(24);
   });
 
+  test.each(["dawn", "fireplace", "shore", "train", "zombies", "lofi"] as const)(
+    "accepts the %s illustrated scene",
+    (visualEffect) => {
+      const manifest = parseSoundscapeManifest(
+        JSON.stringify({
+          version: 1,
+          visualEffect,
+          layers: [{ id: "ambience", title: "Ambiance", file: "ambience.ogg" }],
+        }),
+      );
+
+      expect(manifest.visualEffect).toBe(visualEffect);
+    },
+  );
+
   test("rejects a start delay without a repetition interval", () => {
     expect(() =>
       parseSoundscapeManifest(

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/auth/session";
 import { getCatalogBookBySlug } from "@/catalog/queries";
-import { AmbientBackdrop } from "@/components/reader/ambient-backdrop";
 import { EpubReader } from "@/components/reader/epub-reader";
 import { canReadBook } from "@/reader/access-rules";
 
@@ -38,7 +37,6 @@ export default async function ReaderPage({
 
   return (
     <main className="reader-shell">
-      <AmbientBackdrop />
       <nav className="reader-shell__nav">
         <Link className="brand-wordmark" href="/">
           <span className="brand-letter">L</span>yreah

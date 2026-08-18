@@ -33,13 +33,66 @@ type SoundscapeResponse = {
   soundscapes?: Soundscape[];
 };
 
+type LoopSlot = 0 | 1;
+type LoopTransition = {
+  elapsedMs: number;
+  frameId: number | null;
+  from: LoopSlot;
+  startedAt: number | null;
+  to: LoopSlot;
+};
+type ContinuousLoopRuntime = {
+  activeSlot: LoopSlot;
+  audios: [HTMLAudioElement, HTMLAudioElement];
+  dispose: () => void;
+  disposed: boolean;
+  layer: SoundscapeLayer;
+  pause: () => void;
+  paused: boolean;
+  play: () => Promise<void>;
+  soundscape: Soundscape;
+  transition: LoopTransition | null;
+};
+
 const CROSSFADE_DURATION_MS = 360;
+const LOOP_CROSSFADE_DURATION_MS = 3_000;
 const audioKey = (soundscapeId: string, layerId: string) =>
   `${soundscapeId}:${layerId}`;
+const continuousAudioKey = (
+  soundscapeId: string,
+  layerId: string,
+  slot: LoopSlot,
+) => `${audioKey(soundscapeId, layerId)}:loop-${slot}`;
+
+function AudioSource({
+  audioId,
+  preload,
+  registerAudio,
+  src,
+}: {
+  audioId: string;
+  preload: "metadata" | "none";
+  registerAudio: (key: string, audio: HTMLAudioElement | null) => void;
+  src: string;
+}) {
+  return (
+    <audio
+      aria-hidden="true"
+      preload={preload}
+      ref={(audio) => registerAudio(audioId, audio)}
+      src={src}
+    />
+  );
+}
 
 export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
   const playerRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const detailsButtonRef = useRef<HTMLButtonElement>(null);
   const audioRefs = useRef(new Map<string, HTMLAudioElement>());
+  const continuousLoopRefs = useRef(new Map<string, ContinuousLoopRuntime>());
+  const loopGainRefs = useRef(new Map<string, number>());
+  const soundscapeGainRefs = useRef(new Map<string, number>());
   const transitionIdRef = useRef(0);
   const isTransitioningRef = useRef(false);
   const preferencesLoadedRef = useRef(false);
@@ -53,6 +106,7 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
   );
   const [performanceMode, setPerformanceMode] = useState(false);
   const [error, setError] = useState("");
+  const volumeRef = useRef(volume);
 
   const activeSoundscape = useMemo(
     () =>
@@ -62,24 +116,277 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
     [selectedSoundscapeId, soundscapes],
   );
 
+  const applyAudioVolume = useCallback(
+    (soundscape: Soundscape, layer: SoundscapeLayer, key: string, loopGain: number) => {
+      const audio = audioRefs.current.get(key);
+      if (!audio) return;
+
+      const soundscapeGain = soundscapeGainRefs.current.get(soundscape.id) ?? 0;
+      audio.volume = Math.min(
+        1,
+        Math.max(
+          0,
+          (volumeRef.current / 100) * layer.volume * soundscapeGain * loopGain,
+        ),
+      );
+    },
+    [],
+  );
+
+  const setLoopGain = useCallback(
+    (soundscape: Soundscape, layer: SoundscapeLayer, slot: LoopSlot, gain: number) => {
+      const key = continuousAudioKey(soundscape.id, layer.id, slot);
+      loopGainRefs.current.set(key, gain);
+      applyAudioVolume(soundscape, layer, key, gain);
+    },
+    [applyAudioVolume],
+  );
+
   const setSoundscapeVolume = useCallback(
     (soundscape: Soundscape, multiplier: number) => {
+      soundscapeGainRefs.current.set(soundscape.id, multiplier);
       soundscape.layers.forEach((layer) => {
-        const audio = audioRefs.current.get(audioKey(soundscape.id, layer.id));
-        if (audio) {
-          audio.volume = Math.min(
-            1,
-            Math.max(0, (volume / 100) * layer.volume * multiplier),
-          );
+        if (layer.intervalSeconds) {
+          applyAudioVolume(soundscape, layer, audioKey(soundscape.id, layer.id), 1);
+          return;
         }
+
+        ([0, 1] as const).forEach((slot) => {
+          const key = continuousAudioKey(soundscape.id, layer.id, slot);
+          const loopGain = loopGainRefs.current.get(key) ?? (slot === 0 ? 1 : 0);
+          applyAudioVolume(soundscape, layer, key, loopGain);
+        });
       });
     },
-    [volume],
+    [applyAudioVolume],
   );
+
+  const ensureContinuousLoop = useCallback(
+    (soundscape: Soundscape, layer: SoundscapeLayer) => {
+      const key = audioKey(soundscape.id, layer.id);
+      const existing = continuousLoopRefs.current.get(key);
+      if (existing && !existing.disposed) return existing;
+
+      const first = audioRefs.current.get(continuousAudioKey(soundscape.id, layer.id, 0));
+      const second = audioRefs.current.get(continuousAudioKey(soundscape.id, layer.id, 1));
+      if (!first || !second) return null;
+
+      const runtime: ContinuousLoopRuntime = {
+        activeSlot: 0,
+        audios: [first, second],
+        dispose: () => undefined,
+        disposed: false,
+        layer,
+        pause: () => undefined,
+        paused: true,
+        play: async () => undefined,
+        soundscape,
+        transition: null,
+      };
+
+      const finishTransition = () => {
+        const transition = runtime.transition;
+        if (!transition) return;
+
+        const previous = runtime.audios[transition.from];
+        previous.pause();
+        previous.currentTime = 0;
+        setLoopGain(soundscape, layer, transition.from, 0);
+        setLoopGain(soundscape, layer, transition.to, 1);
+        runtime.activeSlot = transition.to;
+        runtime.transition = null;
+      };
+
+      const resumeFade = () => {
+        const transition = runtime.transition;
+        if (!transition || runtime.paused || runtime.disposed) return;
+
+        transition.startedAt = performance.now();
+        const step = (now: number) => {
+          const currentTransition = runtime.transition;
+          if (
+            !currentTransition ||
+            currentTransition !== transition ||
+            runtime.paused ||
+            runtime.disposed
+          ) {
+            return;
+          }
+
+          const progress = Math.min(
+            1,
+            (currentTransition.elapsedMs + now - currentTransition.startedAt!) /
+              LOOP_CROSSFADE_DURATION_MS,
+          );
+          setLoopGain(soundscape, layer, currentTransition.from, 1 - progress);
+          setLoopGain(soundscape, layer, currentTransition.to, progress);
+
+          if (progress >= 1) finishTransition();
+          else currentTransition.frameId = requestAnimationFrame(step);
+        };
+        transition.frameId = requestAnimationFrame(step);
+      };
+
+      const beginTransition = () => {
+        if (runtime.transition || runtime.paused || runtime.disposed) return;
+
+        const from = runtime.activeSlot;
+        const to: LoopSlot = from === 0 ? 1 : 0;
+        const nextAudio = runtime.audios[to];
+        runtime.transition = {
+          elapsedMs: 0,
+          frameId: null,
+          from,
+          startedAt: null,
+          to,
+        };
+        nextAudio.currentTime = 0;
+        setLoopGain(soundscape, layer, to, 0);
+        void nextAudio
+          .play()
+          .then(() => {
+            if (runtime.paused || runtime.disposed) {
+              nextAudio.pause();
+              return;
+            }
+            resumeFade();
+          })
+          .catch(() => {
+            if (runtime.paused || runtime.disposed) return;
+            runtime.transition = null;
+            nextAudio.pause();
+            nextAudio.currentTime = 0;
+            setLoopGain(soundscape, layer, to, 0);
+            setLoopGain(soundscape, layer, from, 1);
+            const activeAudio = runtime.audios[from];
+            activeAudio.currentTime = 0;
+            void activeAudio
+              .play()
+              .catch(() => setError("Une boucle audio n’a pas pu être enchaînée"));
+          });
+      };
+
+      const onTimeUpdate = (event: Event) => {
+        const activeAudio = runtime.audios[runtime.activeSlot];
+        if (event.currentTarget !== activeAudio || runtime.transition) return;
+
+        const duration = activeAudio.duration;
+        if (!Number.isFinite(duration) || duration <= 0) return;
+        const overlapSeconds = Math.min(
+          LOOP_CROSSFADE_DURATION_MS / 1_000,
+          duration / 3,
+        );
+        if (activeAudio.currentTime >= duration - overlapSeconds) beginTransition();
+      };
+
+      const onEnded = (event: Event) => {
+        const activeAudio = runtime.audios[runtime.activeSlot];
+        if (
+          event.currentTarget !== activeAudio ||
+          runtime.transition ||
+          runtime.paused ||
+          runtime.disposed
+        ) {
+          return;
+        }
+        activeAudio.currentTime = 0;
+        void activeAudio.play().catch(() => setError("Lecture audio impossible"));
+      };
+
+      runtime.audios.forEach((audio) => {
+        audio.addEventListener("timeupdate", onTimeUpdate);
+        audio.addEventListener("ended", onEnded);
+      });
+      setLoopGain(soundscape, layer, 0, 1);
+      setLoopGain(soundscape, layer, 1, 0);
+
+      runtime.play = async () => {
+        if (runtime.disposed) return;
+        runtime.paused = false;
+        const transition = runtime.transition;
+        if (transition) {
+          await Promise.all([
+            runtime.audios[transition.from].play(),
+            runtime.audios[transition.to].play(),
+          ]);
+          resumeFade();
+          return;
+        }
+        await runtime.audios[runtime.activeSlot].play();
+      };
+
+      runtime.pause = () => {
+        if (runtime.disposed || runtime.paused) return;
+        runtime.paused = true;
+        const transition = runtime.transition;
+        if (transition?.startedAt !== null && transition?.startedAt !== undefined) {
+          transition.elapsedMs += performance.now() - transition.startedAt;
+          transition.startedAt = null;
+        }
+        if (transition?.frameId !== null && transition?.frameId !== undefined) {
+          cancelAnimationFrame(transition.frameId);
+          transition.frameId = null;
+        }
+        runtime.audios.forEach((audio) => audio.pause());
+      };
+
+      runtime.dispose = () => {
+        if (runtime.disposed) return;
+        runtime.pause();
+        runtime.disposed = true;
+        runtime.audios.forEach((audio) => {
+          audio.removeEventListener("timeupdate", onTimeUpdate);
+          audio.removeEventListener("ended", onEnded);
+          audio.pause();
+          audio.currentTime = 0;
+        });
+        setLoopGain(soundscape, layer, 0, 1);
+        setLoopGain(soundscape, layer, 1, 0);
+        continuousLoopRefs.current.delete(key);
+      };
+
+      continuousLoopRefs.current.set(key, runtime);
+      return runtime;
+    },
+    [setLoopGain],
+  );
+
+  const playContinuousLayers = useCallback(
+    async (soundscape: Soundscape) => {
+      const runtimes = soundscape.layers
+        .filter((layer) => !layer.intervalSeconds)
+        .map((layer) => ensureContinuousLoop(soundscape, layer))
+        .filter((runtime): runtime is ContinuousLoopRuntime => Boolean(runtime));
+      await Promise.all(runtimes.map((runtime) => runtime.play()));
+    },
+    [ensureContinuousLoop],
+  );
+
+  const pauseContinuousLayers = useCallback((soundscape: Soundscape) => {
+    soundscape.layers.forEach((layer) => {
+      continuousLoopRefs.current.get(audioKey(soundscape.id, layer.id))?.pause();
+    });
+  }, []);
+
+  const stopContinuousLayers = useCallback((soundscape: Soundscape) => {
+    soundscape.layers.forEach((layer) => {
+      continuousLoopRefs.current.get(audioKey(soundscape.id, layer.id))?.dispose();
+    });
+  }, []);
+
+  const registerAudio = useCallback((key: string, audio: HTMLAudioElement | null) => {
+    if (audio) audioRefs.current.set(key, audio);
+    else audioRefs.current.delete(key);
+  }, []);
+
+  useEffect(() => {
+    volumeRef.current = volume;
+  }, [volume]);
 
   useEffect(() => {
     const controller = new AbortController();
     const audioElements = audioRefs.current;
+    const continuousLoops = continuousLoopRefs.current;
 
     async function loadSoundscapes() {
       try {
@@ -119,6 +426,7 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
     return () => {
       controller.abort();
       transitionIdRef.current += 1;
+      continuousLoops.forEach((runtime) => runtime.dispose());
       audioElements.forEach((audio) => audio.pause());
     };
   }, [bookId]);
@@ -141,7 +449,7 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
     soundscapes.forEach((soundscape) => {
       setSoundscapeVolume(soundscape, soundscape.id === activeSoundscape.id ? 1 : 0);
     });
-  }, [activeSoundscape, setSoundscapeVolume, soundscapes]);
+  }, [activeSoundscape, setSoundscapeVolume, soundscapes, volume]);
 
   useEffect(() => {
     document.documentElement.dataset.soundscapeEffect =
@@ -200,13 +508,18 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
   useEffect(() => {
     if (!isExpanded) return;
 
+    closeButtonRef.current?.focus();
+
     function closeOnOutsideClick(event: PointerEvent) {
       if (event.target instanceof Node && !playerRef.current?.contains(event.target)) {
         setIsExpanded(false);
       }
     }
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setIsExpanded(false);
+      if (event.key === "Escape") {
+        setIsExpanded(false);
+        detailsButtonRef.current?.focus();
+      }
     }
 
     document.addEventListener("pointerdown", closeOnOutsideClick);
@@ -217,15 +530,29 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
     };
   }, [isExpanded]);
 
+  useEffect(() => {
+    if (!activeSoundscape || !isPlaying) return;
+
+    function pauseWhenBackgrounded() {
+      if (document.visibilityState === "hidden") {
+        pauseContinuousLayers(activeSoundscape!);
+        setIsPlaying(false);
+      }
+    }
+
+    document.addEventListener("visibilitychange", pauseWhenBackgrounded);
+    window.addEventListener("pagehide", pauseWhenBackgrounded);
+    return () => {
+      document.removeEventListener("visibilitychange", pauseWhenBackgrounded);
+      window.removeEventListener("pagehide", pauseWhenBackgrounded);
+    };
+  }, [activeSoundscape, isPlaying, pauseContinuousLayers]);
+
   const togglePlayback = useCallback(async () => {
-    if (!activeSoundscape) return;
-    const audioElements = activeSoundscape.layers
-      .filter((layer) => !layer.intervalSeconds)
-      .map((layer) => audioRefs.current.get(audioKey(activeSoundscape.id, layer.id)))
-      .filter((audio): audio is HTMLAudioElement => Boolean(audio));
+    if (!activeSoundscape || isTransitioningRef.current) return;
 
     if (isPlaying) {
-      audioElements.forEach((audio) => audio.pause());
+      pauseContinuousLayers(activeSoundscape);
       setIsPlaying(false);
       return;
     }
@@ -233,17 +560,29 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
     try {
       setError("");
       setSoundscapeVolume(activeSoundscape, 1);
-      await Promise.all(audioElements.map((audio) => audio.play()));
+      await playContinuousLayers(activeSoundscape);
       setIsPlaying(true);
     } catch {
-      audioElements.forEach((audio) => audio.pause());
+      pauseContinuousLayers(activeSoundscape);
       setError("Lecture audio impossible");
     }
-  }, [activeSoundscape, isPlaying, setSoundscapeVolume]);
+  }, [
+    activeSoundscape,
+    isPlaying,
+    pauseContinuousLayers,
+    playContinuousLayers,
+    setSoundscapeVolume,
+  ]);
 
   const selectSoundscape = useCallback(
     async (nextSoundscape: Soundscape) => {
-      if (!activeSoundscape || nextSoundscape.id === activeSoundscape.id) return;
+      if (
+        !activeSoundscape ||
+        nextSoundscape.id === activeSoundscape.id ||
+        isTransitioningRef.current
+      ) {
+        return;
+      }
 
       const previousSoundscape = activeSoundscape;
       const transitionId = transitionIdRef.current + 1;
@@ -251,20 +590,14 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
       isTransitioningRef.current = isPlaying;
       setSelectedSoundscapeId(nextSoundscape.id);
       setError("");
-      if (!isPlaying) return;
-
-      const nextAudioElements = nextSoundscape.layers
-        .filter((layer) => !layer.intervalSeconds)
-        .map((layer) => audioRefs.current.get(audioKey(nextSoundscape.id, layer.id)))
-        .filter((audio): audio is HTMLAudioElement => Boolean(audio));
-      const previousAudioElements = previousSoundscape.layers
-        .filter((layer) => !layer.intervalSeconds)
-        .map((layer) => audioRefs.current.get(audioKey(previousSoundscape.id, layer.id)))
-        .filter((audio): audio is HTMLAudioElement => Boolean(audio));
+      if (!isPlaying) {
+        stopContinuousLayers(previousSoundscape);
+        return;
+      }
 
       try {
         setSoundscapeVolume(nextSoundscape, 0);
-        await Promise.all(nextAudioElements.map((audio) => audio.play()));
+        await playContinuousLayers(nextSoundscape);
         const startedAt = performance.now();
 
         await new Promise<void>((resolve) => {
@@ -280,19 +613,25 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
         });
 
         if (transitionIdRef.current === transitionId) {
-          previousAudioElements.forEach((audio) => audio.pause());
+          stopContinuousLayers(previousSoundscape);
           setSoundscapeVolume(nextSoundscape, 1);
           isTransitioningRef.current = false;
         }
       } catch {
-        previousAudioElements.forEach((audio) => audio.pause());
-        nextAudioElements.forEach((audio) => audio.pause());
+        stopContinuousLayers(previousSoundscape);
+        stopContinuousLayers(nextSoundscape);
         setIsPlaying(false);
         isTransitioningRef.current = false;
         setError("Changement d’ambiance impossible");
       }
     },
-    [activeSoundscape, isPlaying, setSoundscapeVolume],
+    [
+      activeSoundscape,
+      isPlaying,
+      playContinuousLayers,
+      setSoundscapeVolume,
+      stopContinuousLayers,
+    ],
   );
 
   if (!activeSoundscape) {
@@ -302,32 +641,59 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
   return (
     <div className="ambient-player" ref={playerRef}>
       {soundscapes.flatMap((soundscape) =>
-        soundscape.layers.map((layer) => (
-          <audio
-            key={audioKey(soundscape.id, layer.id)}
-            loop={!layer.intervalSeconds}
-            preload="none"
-            ref={(audio) => {
-              const key = audioKey(soundscape.id, layer.id);
-              if (audio) audioRefs.current.set(key, audio);
-              else audioRefs.current.delete(key);
-            }}
-            src={layer.url}
-          />
-        )),
+        soundscape.layers.flatMap((layer) => {
+          if (layer.intervalSeconds) {
+            const key = audioKey(soundscape.id, layer.id);
+            return [
+              <AudioSource
+                audioId={key}
+                key={key}
+                preload="none"
+                registerAudio={registerAudio}
+                src={layer.url}
+              />,
+            ];
+          }
+
+          return ([0, 1] as const).map((slot) => {
+            const key = continuousAudioKey(soundscape.id, layer.id, slot);
+            return (
+              <AudioSource
+                audioId={key}
+                key={key}
+                preload={
+                  soundscape.id === activeSoundscape.id && slot === 0
+                    ? "metadata"
+                    : "none"
+                }
+                registerAudio={registerAudio}
+                src={layer.url}
+              />
+            );
+          });
+        }),
       )}
 
       {isExpanded ? (
-        <section className="ambient-player__panel" aria-label="Réglages de l’ambiance">
+        <section
+          aria-labelledby="ambient-player-title"
+          className="ambient-player__panel"
+          id="ambient-player-panel"
+          role="dialog"
+        >
           <button
             aria-label="Fermer les réglages de l’ambiance"
             className="ambient-player__close"
-            onClick={() => setIsExpanded(false)}
+            onClick={() => {
+              setIsExpanded(false);
+              detailsButtonRef.current?.focus();
+            }}
+            ref={closeButtonRef}
             type="button"
           >
             <span aria-hidden="true">×</span>
           </button>
-          <p>Ambiance du livre</p>
+          <p id="ambient-player-title">Ambiance du livre</p>
           <strong>{activeSoundscape.title}</strong>
           {activeSoundscape.description ? <span>{activeSoundscape.description}</span> : null}
 
@@ -405,9 +771,11 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
 
       <div className="ambient-player__mini">
         <button
+          aria-controls="ambient-player-panel"
           aria-expanded={isExpanded}
           className="ambient-player__details"
           onClick={() => setIsExpanded((current) => !current)}
+          ref={detailsButtonRef}
           type="button"
         >
           <span aria-hidden="true">♪</span>
@@ -425,7 +793,11 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
           <span aria-hidden="true">{isPlaying ? "Ⅱ" : "▶"}</span>
         </button>
       </div>
-      {error ? <span className="ambient-player__error">{error}</span> : null}
+      {error ? (
+        <span aria-live="polite" className="ambient-player__error" role="status">
+          {error}
+        </span>
+      ) : null}
     </div>
   );
 }
