@@ -119,13 +119,16 @@ export default function Home() {
               <footer className="reader-preview__footer">
                 <div className="reader-preview__player">
                   <span aria-hidden="true">♫</span>
-                  <p><small>Ambiance du livre</small><strong>Orage gothique</strong></p>
+                  <p><small>Ambiance</small><strong>Orage gothique</strong></p>
                   <i aria-hidden="true" />
                 </div>
                 <div className="reader-preview__navigation" aria-hidden="true">
-                  <span>←</span><span>Page suivante →</span>
+                  <span>← Page précédente</span><span>Page suivante →</span>
                 </div>
-                <div className="reader-preview__progress" aria-hidden="true"><i /></div>
+                <div className="reader-preview__progress" aria-hidden="true">
+                  <span>42 %</span>
+                  <b><i /></b>
+                </div>
               </footer>
 
               <Link
