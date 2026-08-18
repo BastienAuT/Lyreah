@@ -50,11 +50,15 @@ export default function Home() {
           <nav className="main-nav" aria-label="Rubriques">
             <Link href="/catalogue">Catalogue</Link>
             <Link href="/bibliotheque">Ma bibliothèque</Link>
-            <a href="#experience">Le lecteur</a>
+            <a href="#lecteur">Le lecteur</a>
           </nav>
 
           <div className="header-actions">
-            <Link className="search-button" href="/catalogue" aria-label="Rechercher un livre">
+            <Link
+              className="search-button"
+              href="/catalogue"
+              aria-label="Rechercher un livre"
+            >
               <span aria-hidden="true" />
             </Link>
             <Link className="account-link" href="/auth/sign-in">
@@ -65,31 +69,45 @@ export default function Home() {
 
         <div className="hero" id="top">
           <div className="hero-copy">
-            <p className="eyebrow">13 classiques français · lecture immersive</p>
-            <h1>Les grands classiques prennent vie.</h1>
+            <p className="eyebrow">
+              13 classiques français · lecture immersive
+            </p>
+            <h1>Lisez. Écoutez. Rêvez.</h1>
             <p className="hero-intro">
-              Lisez gratuitement les grands classiques en français dans une liseuse
-              confortable, accompagnée d’ambiances sonores que vous gardez toujours
-              sous votre contrôle.
+              Lisez gratuitement les grands classiques en français dans une
+              liseuse confortable, accompagnée d’ambiances sonores que vous
+              gardez toujours sous votre contrôle.
             </p>
             <div className="hero-actions">
               <Link className="button button--primary" href="/catalogue">
                 Choisir un livre
                 <span aria-hidden="true">→</span>
               </Link>
-              <a className="text-link" href="#experience">
-                Découvrir l’expérience
+              <a className="text-link" href="#lecteur">
+                Le lecteur Lyreah
               </a>
             </div>
 
             <div className="hero-facts" aria-label="Les avantages de Lyreah">
-              <p><strong>11</strong><span>ambiances par livre</span></p>
-              <p><strong>100 %</strong><span>en français</span></p>
-              <p><strong>Libre</strong><span>domaine public</span></p>
+              <p>
+                <strong>11</strong>
+                <span>ambiances par livre</span>
+              </p>
+              <p>
+                <strong>100 %</strong>
+                <span>en français</span>
+              </p>
+              <p>
+                <strong>Libre</strong>
+                <span>domaine public</span>
+              </p>
             </div>
           </div>
 
-          <div className="reader-scene" id="experience" aria-label="Aperçu du lecteur Lyreah">
+          <div
+            className="reader-scene"
+            aria-label="Aperçu du lecteur Lyreah"
+          >
             <div className="orb orb--one" />
             <div className="orb orb--two" />
             <ReaderPreviewCarousel />
@@ -98,7 +116,10 @@ export default function Home() {
 
         <nav className="category-row" aria-label="Catégories de livres">
           {categories.map((category) => (
-            <Link href={`/catalogue?categorie=${category.slug}`} key={category.slug}>
+            <Link
+              href={`/catalogue?categorie=${category.slug}`}
+              key={category.slug}
+            >
               {category.label}
             </Link>
           ))}
@@ -133,31 +154,47 @@ export default function Home() {
                 />
               </Link>
               <p className="book-label">{book.label}</p>
-              <h3><Link href={`/livres/${book.slug}`}>{book.title}</Link></h3>
+              <h3>
+                <Link href={`/livres/${book.slug}`}>{book.title}</Link>
+              </h3>
               <p>{book.author}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="promise-section">
-        <p className="eyebrow">Le livre reste au centre</p>
-        <h2>Une liseuse conçue pour disparaître derrière l’histoire.</h2>
+      <section className="promise-section" id="lecteur">
+        <p className="eyebrow">Le lecteur Lyreah</p>
+        <h2>Une liseuse pensée pour rester dans l’histoire.</h2>
+        <p className="promise-intro">
+          Le lecteur adapte chaque EPUB à votre confort, mémorise votre
+          progression et ajoute, si vous le souhaitez, une ambiance sonore et
+          visuelle.
+        </p>
         <div className="promise-grid">
           <article>
             <span>01</span>
-            <h3>Votre confort, vraiment</h3>
-            <p>Taille, interlignage, police, thème et texture s’adaptent sans perdre votre page.</p>
+            <h3>Lecture sur mesure</h3>
+            <p>
+              Ajustez la taille, l’interlignage, la police, le thème et la
+              texture sans perdre votre page.
+            </p>
           </article>
-          <article id="bibliotheque">
+          <article>
             <span>02</span>
-            <h3>Votre progression préservée</h3>
-            <p>Reprenez exactement où vous vous êtes arrêté, sur téléphone comme sur ordinateur.</p>
+            <h3>Reprise exacte</h3>
+            <p>
+              Retrouvez précisément l’endroit où vous vous êtes arrêté, sur
+              téléphone comme sur ordinateur.
+            </p>
           </article>
           <article>
             <span>03</span>
-            <h3>Le son reste facultatif</h3>
-            <p>Choisissez parmi onze ambiances, réglez leur intensité ou lisez dans le silence.</p>
+            <h3>Immersion facultative</h3>
+            <p>
+              Choisissez parmi onze ambiances, réglez le volume et les effets,
+              ou coupez tout pour lire dans le silence.
+            </p>
           </article>
         </div>
       </section>

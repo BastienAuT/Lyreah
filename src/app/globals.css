@@ -2823,7 +2823,16 @@ h1 {
 }
 
 .promise-section > h2 {
-  margin-bottom: 58px;
+  margin-bottom: 20px;
+}
+
+.promise-intro {
+  max-width: 720px;
+  margin: 0 0 58px;
+  color: var(--text-muted);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+  line-height: 1.75;
 }
 
 .promise-grid {
