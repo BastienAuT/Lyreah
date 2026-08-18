@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/auth/session";
 import { getCatalogBookBySlug } from "@/catalog/queries";
+import { getCatalogCoverCredit } from "@/catalog/cover-credits";
+import { formatBookLanguage } from "@/catalog/languages";
 import { BookCover } from "@/components/catalog/book-cover";
 import { addBookToLibrary, removeBookFromLibrary } from "@/library/actions";
 import { getLibraryEntry } from "@/library/queries";
@@ -27,6 +29,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
   const author = book.authors.map((item) => item.name).join(", ") || "Auteur inconnu";
   const isReady = book.processingStatus === "ready" && Boolean(book.epubRenditionPrefix);
   const libraryEntry = user ? await getLibraryEntry(user.id, book.id) : null;
+  const coverCredit = getCatalogCoverCredit(book.slug);
 
   return (
     <main className="book-detail-page">
@@ -39,7 +42,10 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
         <div className="book-detail__copy">
           <p className="eyebrow">{book.categories.map((category) => category.name).join(" · ")}</p>
           <h1>{book.title}</h1>
-          <p className="book-detail__author">{author}{book.publicationYear ? ` · ${book.publicationYear}` : ""}</p>
+          <p className="book-detail__author">
+            {author}{book.publicationYear ? ` · ${book.publicationYear}` : ""}
+            {` · ${formatBookLanguage(book.language)}`}
+          </p>
           <p className="book-detail__synopsis">{book.synopsis}</p>
           <div className="book-detail__actions">
             {isReady ? (
@@ -58,6 +64,11 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
             <strong>Droits et provenance</strong>
             <p>{book.rightsStatement}</p>
             <a href={book.sourceUrl} target="_blank" rel="noreferrer">Consulter la source ↗</a>
+            {coverCredit ? (
+              <p>
+                {coverCredit.credit} · {coverCredit.license}
+              </p>
+            ) : null}
           </aside>
         </div>
       </article>

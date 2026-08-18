@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ensureCurrentProfile } from "@/auth/session";
+import { formatBookLanguage } from "@/catalog/languages";
 import { BookCover } from "@/components/catalog/book-cover";
 import { removeBookFromLibrary } from "@/library/actions";
 import { getLibraryBooks } from "@/library/queries";
@@ -44,7 +45,7 @@ export default async function LibraryPage() {
                   <div className="library-book__meta">
                     <p>{hasStarted && status === "saved" ? "Lecture en cours" : statusLabel}</p>
                     <h2><Link href={`/livres/${book.slug}`}>{book.title}</Link></h2>
-                    <span>{author}</span>
+                    <span>{author} · {formatBookLanguage(book.language)}</span>
                     {hasStarted ? (
                       <div
                         aria-label={`Progression de lecture : ${progress} %`}

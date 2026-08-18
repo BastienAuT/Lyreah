@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { CatalogBook } from "@/catalog/queries";
+import { formatBookLanguage } from "@/catalog/languages";
 import { BookCover } from "./book-cover";
 
 export function BookCard({ book }: { book: CatalogBook }) {
@@ -11,7 +12,10 @@ export function BookCard({ book }: { book: CatalogBook }) {
         <BookCover title={book.title} author={author} slug={book.slug} />
       </Link>
       <div className="catalog-book-card__meta">
-        <p>{book.categories.map((category) => category.name).join(" · ") || "Classique"}</p>
+        <p>
+          {book.categories.map((category) => category.name).join(" · ") || "Classique"}
+          {` · ${formatBookLanguage(book.language)}`}
+        </p>
         <h2>
           <Link href={`/livres/${book.slug}`}>{book.title}</Link>
         </h2>
