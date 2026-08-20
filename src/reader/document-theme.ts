@@ -38,6 +38,37 @@ export function getReaderDocumentThemeCss(
   const palette = readerPalettes[preferences.theme];
   const texture = preferences.texture ? paperTexture : "none";
   const fontFamily = readerFontFamilies[preferences.font];
+  const nightOverrides =
+    preferences.theme === "night"
+      ? `
+html[data-reader-theme="night"] body :where(
+  p,
+  li,
+  blockquote,
+  dd,
+  dt,
+  td,
+  th
+) {
+  background-color: transparent !important;
+  background-image: none !important;
+  color: ${palette.text} !important;
+}
+html[data-reader-theme="night"] body :where(
+  [style*="background" i],
+  [bgcolor]
+) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+html[data-reader-theme="night"] body :where(
+  [style*="color" i],
+  font[color]
+) {
+  color: ${palette.text} !important;
+}
+`
+      : "";
 
   return `
 html {
@@ -60,8 +91,23 @@ body li,
 body blockquote,
 body dd,
 body dt {
+  color: ${palette.text} !important;
   font-family: inherit !important;
   line-height: ${preferences.lineHeight} !important;
+}
+${nightOverrides}
+body h1,
+body h2,
+body h3,
+body h4,
+body h5,
+body h6 {
+  color: ${palette.heading} !important;
+}
+body a,
+body a:visited,
+body a * {
+  color: ${palette.link} !important;
 }
 `;
 }

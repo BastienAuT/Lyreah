@@ -36,6 +36,21 @@ test("la liseuse reste exploitable sur chaque format d’écran", async ({
   await expect(page.getByRole("button", { name: "Page précédente" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Page suivante" })).toBeVisible();
 
+  const pageLabel = page.locator(".epub-reader__progress-wrap > span").first();
+  const initialPage = await pageLabel.textContent();
+  await page.getByRole("button", { name: "Page suivante" }).click();
+  await page.getByRole("button", { name: "Page suivante" }).click();
+  if (initialPage) await expect(pageLabel).not.toHaveText(initialPage);
+  const pageBeforeResize = await pageLabel.textContent();
+  const viewport = page.viewportSize();
+  if (viewport && pageBeforeResize) {
+    await page.setViewportSize({
+      height: Math.max(480, viewport.height - 70),
+      width: Math.max(320, viewport.width - 60),
+    });
+    await expect(pageLabel).toHaveText(pageBeforeResize);
+  }
+
   const backdrop = page.locator(".ambient-backdrop");
   if (["mobile-webkit", "tablet-webkit"].includes(testInfo.project.name)) {
     await expect(backdrop).toHaveCount(0);

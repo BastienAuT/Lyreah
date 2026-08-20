@@ -94,6 +94,12 @@ function typographySignature(preferences: ReaderPreferences) {
   return `${preferences.font}:${preferences.fontSize}:${preferences.lineHeight}`;
 }
 
+function waitForRenditionRelocation() {
+  return new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
 async function readApiError(response: Response) {
   const data = (await response.json().catch(() => null)) as { error?: string } | null;
   return data?.error || "Impossible d’ouvrir ce livre.";
@@ -114,8 +120,10 @@ export function EpubReader({
   const preferencesRef = useRef(initialPreferences);
   const preferencesLoadedRef = useRef(false);
   const currentCfiRef = useRef<string | null>(null);
+  const preservedCfiRef = useRef<string | null>(null);
   const lastTypographyRef = useRef<string | null>(null);
   const reflowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reflowRequestRef = useRef(0);
   const reflowingRef = useRef(false);
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
@@ -172,14 +180,13 @@ export function EpubReader({
     if (rendition) {
       const previousTypography = lastTypographyRef.current;
       const nextTypography = typographySignature(preferences);
-      applyReaderPreferences(rendition, preferences);
-      lastTypographyRef.current = nextTypography;
-
-      if (
+      const shouldReflow =
         status === "ready" &&
         previousTypography !== null &&
-        previousTypography !== nextTypography
-      ) {
+        previousTypography !== nextTypography;
+
+      if (shouldReflow) {
+        preservedCfiRef.current ??= currentCfiRef.current;
         if (reflowTimerRef.current) clearTimeout(reflowTimerRef.current);
         const requestId = reflowRequestRef.current + 1;
         reflowRequestRef.current = requestId;
@@ -187,14 +194,16 @@ export function EpubReader({
         setIsReflowing(true);
         reflowTimerRef.current = setTimeout(async () => {
           reflowTimerRef.current = null;
-          const anchor = currentCfiRef.current;
+          const anchor = preservedCfiRef.current;
 
           try {
             rendition.clear();
             await rendition.display(anchor ?? undefined);
+            await waitForRenditionRelocation();
           } catch {
             try {
               await rendition.display();
+              await waitForRenditionRelocation();
             } catch {
               if (reflowRequestRef.current === requestId) {
                 setError("La mise en page n’a pas pu être recalculée.");
@@ -202,18 +211,67 @@ export function EpubReader({
             }
           } finally {
             if (reflowRequestRef.current === requestId) {
+              currentCfiRef.current = anchor;
+              preservedCfiRef.current = null;
               reflowingRef.current = false;
               setIsReflowing(false);
             }
           }
         }, 120);
       }
+
+      applyReaderPreferences(rendition, preferences);
+      lastTypographyRef.current = nextTypography;
     }
 
     return () => {
       delete document.documentElement.dataset.readerTheme;
     };
   }, [preferences, status]);
+
+  useEffect(() => {
+    if (status !== "ready") return;
+
+    function preserveLocationDuringResize() {
+      const rendition = renditionRef.current;
+      const anchor = preservedCfiRef.current ?? currentCfiRef.current;
+      if (!rendition || !anchor) return;
+
+      preservedCfiRef.current = anchor;
+      reflowingRef.current = true;
+      setIsReflowing(true);
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+
+      const requestId = reflowRequestRef.current + 1;
+      reflowRequestRef.current = requestId;
+      resizeTimerRef.current = setTimeout(async () => {
+        resizeTimerRef.current = null;
+
+        try {
+          await rendition.display(anchor);
+          await waitForRenditionRelocation();
+        } catch {
+          if (reflowRequestRef.current === requestId) {
+            setError("La position de lecture n’a pas pu être restaurée.");
+          }
+        } finally {
+          if (reflowRequestRef.current === requestId) {
+            currentCfiRef.current = anchor;
+            preservedCfiRef.current = null;
+            reflowingRef.current = false;
+            setIsReflowing(false);
+          }
+        }
+      }, 180);
+    }
+
+    window.addEventListener("resize", preserveLocationDuringResize);
+    return () => {
+      window.removeEventListener("resize", preserveLocationDuringResize);
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+      resizeTimerRef.current = null;
+    };
+  }, [status]);
 
   useEffect(() => {
     if (!preferencesLoadedRef.current) return;
@@ -457,7 +515,11 @@ export function EpubReader({
         rendition.on("relocated", (location: Location) => {
           if (disposed) return;
 
-          currentCfiRef.current = location.start.cfi;
+          const preservedCfi = reflowingRef.current
+            ? preservedCfiRef.current
+            : null;
+          const positionCfi = preservedCfi ?? location.start.cfi;
+          currentCfiRef.current = positionCfi;
 
           const current = book.navigation.get(location.start.href);
           const displayedEnd = location.end.displayed;
@@ -467,7 +529,7 @@ export function EpubReader({
             : 0;
 
           setChapter(current?.label?.trim() || "Lecture");
-          updateBookPagination(book, location.start.cfi);
+          updateBookPagination(book, positionCfi);
           const percentage = spineLength
             ? Math.min(
                 100,
@@ -475,12 +537,15 @@ export function EpubReader({
               )
             : 0;
 
-          setProgress(percentage);
-          setAtStart(location.atStart);
-          setAtEnd(location.atEnd);
+          if (!preservedCfi) setProgress(percentage);
+          if (!preservedCfi) {
+            setAtStart(location.atStart);
+            setAtEnd(location.atEnd);
+          }
           setError("");
           viewer.classList.remove("is-page-entering");
           if (
+            !preservedCfi &&
             !window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
             !window.matchMedia(
               "(max-width: 680px), (min-width: 681px) and (max-width: 1024px) and (orientation: portrait)",
@@ -489,10 +554,12 @@ export function EpubReader({
             void viewer.offsetWidth;
             viewer.classList.add("is-page-entering");
           }
-          scheduleSave({
-            cfi: location.start.cfi,
-            percentageBasisPoints: Math.round(percentage * 100),
-          });
+          if (!preservedCfi) {
+            scheduleSave({
+              cfi: location.start.cfi,
+              percentageBasisPoints: Math.round(percentage * 100),
+            });
+          }
         });
 
         if (savedProgress?.cfi) {
@@ -538,8 +605,11 @@ export function EpubReader({
       if (saveTimer) clearTimeout(saveTimer);
       if (reflowTimerRef.current) clearTimeout(reflowTimerRef.current);
       reflowTimerRef.current = null;
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+      resizeTimerRef.current = null;
       reflowRequestRef.current += 1;
       reflowingRef.current = false;
+      preservedCfiRef.current = null;
       removeSwipeListeners.forEach((removeListeners) => removeListeners());
       removeSwipeListeners.clear();
       saveBeforeLeaving();

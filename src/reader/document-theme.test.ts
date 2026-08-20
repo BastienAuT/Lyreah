@@ -48,4 +48,17 @@ describe("getReaderDocumentThemeCss", () => {
     expect(css).toContain("body p,");
     expect(css).toContain("line-height: 2.1 !important");
   });
+
+  test("neutralizes authored light text panels in night mode", () => {
+    const css = getReaderDocumentThemeCss({
+      ...DEFAULT_READER_PREFERENCES,
+      theme: "night",
+    });
+
+    expect(css).toContain('html[data-reader-theme="night"] body :where(');
+    expect(css).toContain('[style*="background" i]');
+    expect(css).toContain("background-color: transparent !important");
+    expect(css).toContain(`color: ${readerPalettes.night.text} !important`);
+    expect(css).toContain(`color: ${readerPalettes.night.link} !important`);
+  });
 });
