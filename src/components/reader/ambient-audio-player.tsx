@@ -174,6 +174,8 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
   const requestControllerRef = useRef<AbortController | null>(null);
   const transitionIdRef = useRef(0);
   const isTransitioningRef = useRef(false);
+  const pendingSoundscapeRef = useRef<Soundscape | null>(null);
+  const selectedSoundscapeIdRef = useRef<string | null>(null);
   const preferencesLoadedRef = useRef(false);
   const [soundscapes, setSoundscapes] = useState<Soundscape[]>([]);
   const [signedUrlsExpireAt, setSignedUrlsExpireAt] = useState(0);
@@ -671,12 +673,12 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
         setVolume(storedPreferences.volume);
         setEffectsIntensity(storedPreferences.effectsIntensity);
         setPerformanceMode(storedPreferences.performanceMode);
+        const initialSoundscapeId = storedExists
+          ? storedPreferences.soundscapeId
+          : data.defaultSoundscapeId ?? available[0]?.id ?? null;
         setSoundscapes(available);
-        setSelectedSoundscapeId(
-          storedExists
-            ? storedPreferences.soundscapeId
-            : data.defaultSoundscapeId ?? available[0]?.id ?? null,
-        );
+        selectedSoundscapeIdRef.current = initialSoundscapeId;
+        setSelectedSoundscapeId(initialSoundscapeId);
       } catch (loadError) {
         if (loadError instanceof DOMException && loadError.name === "AbortError") return;
         setError("Ambiance indisponible");
@@ -691,6 +693,9 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
       }
       refreshSoundscapesPromiseRef.current = null;
       transitionIdRef.current += 1;
+      isTransitioningRef.current = false;
+      pendingSoundscapeRef.current = null;
+      selectedSoundscapeIdRef.current = null;
       continuousLoops.forEach((runtime) => runtime.dispose());
       audioElements.forEach((audio) => audio.pause());
       audioSourceExpiries.clear();
@@ -891,53 +896,108 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
 
   const selectSoundscape = useCallback(
     async (nextSoundscape: Soundscape) => {
-      if (
-        !activeSoundscape ||
-        nextSoundscape.id === activeSoundscape.id ||
-        isTransitioningRef.current
-      ) {
+      if (!activeSoundscape || nextSoundscape.id === selectedSoundscapeIdRef.current) {
         return;
       }
 
-      const previousSoundscape = activeSoundscape;
-      const transitionId = transitionIdRef.current + 1;
-      transitionIdRef.current = transitionId;
-      isTransitioningRef.current = isPlaying;
+      selectedSoundscapeIdRef.current = nextSoundscape.id;
       setSelectedSoundscapeId(nextSoundscape.id);
       setError("");
-      if (!isPlaying) {
-        stopContinuousLayers(previousSoundscape);
+
+      if (isTransitioningRef.current) {
+        pendingSoundscapeRef.current = nextSoundscape;
         return;
       }
 
-      try {
-        setSoundscapeVolume(nextSoundscape, 0);
-        await playContinuousLayers(nextSoundscape);
-        const startedAt = performance.now();
+      if (!isPlaying) {
+        pendingSoundscapeRef.current = null;
+        stopContinuousLayers(activeSoundscape);
+        return;
+      }
 
-        await new Promise<void>((resolve) => {
-          function step(now: number) {
-            if (transitionIdRef.current !== transitionId) return resolve();
-            const progress = Math.min(1, (now - startedAt) / CROSSFADE_DURATION_MS);
-            setSoundscapeVolume(previousSoundscape, 1 - progress);
-            setSoundscapeVolume(nextSoundscape, progress);
-            if (progress < 1) requestAnimationFrame(step);
-            else resolve();
-          }
-          requestAnimationFrame(step);
-        });
+      const transitionId = transitionIdRef.current + 1;
+      transitionIdRef.current = transitionId;
+      isTransitioningRef.current = true;
+      let previousSoundscape = activeSoundscape;
+      let requestedSoundscape = nextSoundscape;
 
-        if (transitionIdRef.current === transitionId) {
-          stopContinuousLayers(previousSoundscape);
-          setSoundscapeVolume(nextSoundscape, 1);
-          isTransitioningRef.current = false;
+      while (transitionIdRef.current === transitionId) {
+        if (requestedSoundscape.id === previousSoundscape.id) {
+          setSoundscapeVolume(previousSoundscape, 1);
+          break;
         }
-      } catch {
-        stopContinuousLayers(previousSoundscape);
-        stopContinuousLayers(nextSoundscape);
-        setIsPlaying(false);
+
+        try {
+          setSoundscapeVolume(requestedSoundscape, 0);
+          await playContinuousLayers(requestedSoundscape);
+
+          const queuedBeforeFade = pendingSoundscapeRef.current;
+          if (
+            queuedBeforeFade &&
+            queuedBeforeFade.id !== requestedSoundscape.id
+          ) {
+            pendingSoundscapeRef.current = null;
+            stopContinuousLayers(requestedSoundscape);
+            requestedSoundscape = queuedBeforeFade;
+            continue;
+          }
+
+          const startedAt = performance.now();
+          await new Promise<void>((resolve) => {
+            function step(now: number) {
+              if (transitionIdRef.current !== transitionId) return resolve();
+              const progress = Math.min(
+                1,
+                (now - startedAt) / CROSSFADE_DURATION_MS,
+              );
+              setSoundscapeVolume(previousSoundscape, 1 - progress);
+              setSoundscapeVolume(requestedSoundscape, progress);
+              if (progress < 1) requestAnimationFrame(step);
+              else resolve();
+            }
+            requestAnimationFrame(step);
+          });
+
+          if (transitionIdRef.current !== transitionId) break;
+          stopContinuousLayers(previousSoundscape);
+          setSoundscapeVolume(requestedSoundscape, 1);
+          previousSoundscape = requestedSoundscape;
+
+          const queuedAfterFade = pendingSoundscapeRef.current;
+          pendingSoundscapeRef.current = null;
+          if (
+            queuedAfterFade &&
+            queuedAfterFade.id !== previousSoundscape.id
+          ) {
+            requestedSoundscape = queuedAfterFade;
+            continue;
+          }
+
+          break;
+        } catch {
+          stopContinuousLayers(requestedSoundscape);
+          setSoundscapeVolume(requestedSoundscape, 0);
+          setSoundscapeVolume(previousSoundscape, 1);
+
+          const queuedAfterError = pendingSoundscapeRef.current;
+          pendingSoundscapeRef.current = null;
+          if (
+            queuedAfterError &&
+            queuedAfterError.id !== previousSoundscape.id
+          ) {
+            requestedSoundscape = queuedAfterError;
+            continue;
+          }
+
+          selectedSoundscapeIdRef.current = previousSoundscape.id;
+          setSelectedSoundscapeId(previousSoundscape.id);
+          setError("Changement d’ambiance impossible");
+          break;
+        }
+      }
+
+      if (transitionIdRef.current === transitionId) {
         isTransitioningRef.current = false;
-        setError("Changement d’ambiance impossible");
       }
     },
     [
