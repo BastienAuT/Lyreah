@@ -16,6 +16,7 @@ import {
   READER_PREFERENCES_STORAGE_KEY,
   type ReaderPreferences,
 } from "@/reader/preferences";
+import { getSwipeDirection } from "@/reader/swipe-navigation";
 import { AmbientBackdrop } from "./ambient-backdrop";
 import { AmbientAudioPlayer } from "./ambient-audio-player";
 import { ReaderAppearancePanel } from "./reader-appearance-panel";
@@ -59,6 +60,17 @@ function isEditableTarget(target: EventTarget | null) {
     element &&
       (["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(element.tagName) ||
         element.isContentEditable),
+  );
+}
+
+function isSwipeBlockedTarget(target: EventTarget | null) {
+  const element = target as Element | null;
+  return Boolean(
+    element &&
+      typeof element.closest === "function" &&
+      element.closest(
+        "a, button, input, select, textarea, [contenteditable='true'], [role='button']",
+      ),
   );
 }
 
@@ -222,6 +234,90 @@ export function EpubReader({
     let saveTimer: ReturnType<typeof setTimeout> | undefined;
     let latestPosition: SavedProgress | null = null;
     const viewer = viewerRef.current;
+    const removeSwipeListeners = new Set<() => void>();
+    const swipeTargets = new WeakSet<Document | HTMLElement>();
+
+    function installSwipeNavigation(target: Document | HTMLElement) {
+      if (swipeTargets.has(target)) return;
+      swipeTargets.add(target);
+
+      let gesture:
+        | { startX: number; startY: number; startedAt: number }
+        | null = null;
+
+      function handleTouchStart(domEvent: Event) {
+        const event = domEvent as TouchEvent;
+        if (
+          event.touches.length !== 1 ||
+          isSwipeBlockedTarget(event.target) ||
+          !window.matchMedia("(max-width: 1024px), (pointer: coarse)").matches
+        ) {
+          gesture = null;
+          return;
+        }
+
+        const touch = event.touches[0];
+        gesture = {
+          startX: touch.clientX,
+          startY: touch.clientY,
+          startedAt: performance.now(),
+        };
+      }
+
+      function handleTouchMove(domEvent: Event) {
+        const event = domEvent as TouchEvent;
+        if (!gesture || event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        const deltaX = touch.clientX - gesture.startX;
+        const deltaY = touch.clientY - gesture.startY;
+
+        if (
+          Math.abs(deltaX) > 14 &&
+          Math.abs(deltaX) > Math.abs(deltaY) * 1.1 &&
+          event.cancelable
+        ) {
+          event.preventDefault();
+        }
+      }
+
+      function handleTouchEnd(domEvent: Event) {
+        const event = domEvent as TouchEvent;
+        const completedGesture = gesture;
+        gesture = null;
+        const touch = event.changedTouches[0];
+        if (!completedGesture || !touch) return;
+
+        const viewportWidth =
+          target instanceof Document
+            ? target.documentElement.clientWidth
+            : target.clientWidth;
+        const direction = getSwipeDirection({
+          deltaX: touch.clientX - completedGesture.startX,
+          deltaY: touch.clientY - completedGesture.startY,
+          durationMs: performance.now() - completedGesture.startedAt,
+          viewportWidth,
+        });
+
+        if (direction) void move(direction);
+      }
+
+      function handleTouchCancel() {
+        gesture = null;
+      }
+
+      target.addEventListener("touchstart", handleTouchStart, { passive: true });
+      target.addEventListener("touchmove", handleTouchMove, { passive: false });
+      target.addEventListener("touchend", handleTouchEnd, { passive: true });
+      target.addEventListener("touchcancel", handleTouchCancel, { passive: true });
+
+      const removeListeners = () => {
+        target.removeEventListener("touchstart", handleTouchStart);
+        target.removeEventListener("touchmove", handleTouchMove);
+        target.removeEventListener("touchend", handleTouchEnd);
+        target.removeEventListener("touchcancel", handleTouchCancel);
+      };
+      removeSwipeListeners.add(removeListeners);
+    }
 
     async function savePosition(position: SavedProgress, keepalive = false) {
       if (!keepalive && !disposed) setSaveStatus("saving");
@@ -303,6 +399,7 @@ export function EpubReader({
         rendition.themes.default({
           html: {
             "background-color": "transparent !important",
+            "touch-action": "pan-y",
           },
           body: {
             "background-color": "transparent !important",
@@ -313,6 +410,7 @@ export function EpubReader({
             "max-width": "680px",
             margin: "0 auto",
             padding: "7% 9% 12%",
+            "touch-action": "pan-y",
           },
           "p, li, blockquote": {
             "font-size": "1em !important",
@@ -340,6 +438,7 @@ export function EpubReader({
         });
         rendition.hooks.content.register((contents: Contents) => {
           applyReaderDocumentTheme(contents.document, preferencesRef.current);
+          installSwipeNavigation(contents.document);
           contents.window.frameElement?.setAttribute(
             "title",
             `Contenu du livre « ${title} »`,
@@ -353,6 +452,7 @@ export function EpubReader({
           });
         });
         applyReaderPreferences(rendition, preferencesRef.current);
+        installSwipeNavigation(viewer);
 
         rendition.on("relocated", (location: Location) => {
           if (disposed) return;
@@ -440,6 +540,8 @@ export function EpubReader({
       reflowTimerRef.current = null;
       reflowRequestRef.current += 1;
       reflowingRef.current = false;
+      removeSwipeListeners.forEach((removeListeners) => removeListeners());
+      removeSwipeListeners.clear();
       saveBeforeLeaving();
       renditionRef.current?.destroy();
       bookRef.current?.destroy();
