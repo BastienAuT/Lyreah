@@ -14,9 +14,14 @@ export default async function LibraryPage() {
   return (
     <main className="library-shell">
       <div className="library-content">
-        <Link className="brand-wordmark" href="/">
-          <span className="brand-letter">L</span>yreah
-        </Link>
+        <div className="library-topbar">
+          <Link className="brand-wordmark" href="/">
+            <span className="brand-letter">L</span>yreah
+          </Link>
+          <Link className="page-account-link" href="/compte/settings">
+            Mon compte
+          </Link>
+        </div>
         <header className="library-header">
           <div>
             <p className="eyebrow">L’espace de {user.name || user.email}</p>

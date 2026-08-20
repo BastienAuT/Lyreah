@@ -180,6 +180,26 @@ button {
   color: var(--ink);
 }
 
+.page-account-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 15px;
+  border: 1px solid rgba(109, 99, 136, 0.28);
+  border-radius: 999px;
+  color: var(--forest);
+  font-size: 0.75rem;
+  font-weight: 750;
+  transition: 160ms ease;
+}
+
+.page-account-link:hover {
+  border-color: rgba(109, 99, 136, 0.48);
+  background: rgba(222, 216, 238, 0.42);
+  color: var(--ink);
+}
+
 .account-eyebrow {
   margin: 52px 0 12px;
   color: var(--forest-light);
@@ -453,6 +473,13 @@ button {
   box-shadow: 0 24px 80px rgba(52, 49, 67, 0.08);
 }
 
+.library-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
 .library-header {
   display: flex;
   align-items: end;
@@ -647,10 +674,23 @@ html[data-soundscape-playing="true"]:not([data-soundscape-effect="none"]) .reade
   padding-inline: 8px;
 }
 
-.reader-shell__nav > a:last-child {
-  display: inline-flex;
+.reader-shell__actions {
+  display: flex;
   align-items: center;
   justify-self: end;
+  gap: 9px;
+}
+
+.reader-shell__account {
+  padding: 9px 5px;
+  color: #625e6d;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.reader-shell__quit {
+  display: inline-flex;
+  align-items: center;
   min-height: 38px;
   padding: 0 15px;
   border: 1px solid rgba(109, 99, 136, 0.18);
@@ -662,20 +702,24 @@ html[data-soundscape-playing="true"]:not([data-soundscape-effect="none"]) .reade
   transition: 160ms ease;
 }
 
-.reader-shell__nav > a:last-child span {
+.reader-shell__quit span {
   display: inline-block;
   margin-right: 5px;
   font-size: 1rem;
   transition: transform 160ms ease;
 }
 
-.reader-shell__nav > a:last-child:hover {
+.reader-shell__account:hover {
+  color: var(--ink);
+}
+
+.reader-shell__quit:hover {
   border-color: rgba(109, 99, 136, 0.38);
   background: rgba(222, 216, 238, 0.5);
   color: var(--ink);
 }
 
-.reader-shell__nav > a:last-child:hover span {
+.reader-shell__quit:hover span {
   transform: rotate(90deg);
 }
 
@@ -847,7 +891,7 @@ html[data-reader-theme="night"] .reader-shell__book span {
   color: #aaa1ad;
 }
 
-html[data-reader-theme="night"] .reader-shell__nav > a:last-child {
+html[data-reader-theme="night"] .reader-shell__quit {
   border-color: rgba(238, 229, 218, 0.15);
   background: rgba(38, 35, 46, 0.68);
 }
@@ -1863,11 +1907,26 @@ html[data-reader-theme="night"] .reader-shell__nav > a:last-child {
     display: none;
   }
 
-  .reader-shell__nav > a:last-child {
+  .reader-shell__actions {
+    gap: 3px;
+  }
+
+  .reader-shell__account {
+    max-width: 54px;
+    padding-inline: 4px;
+    font-size: 0.62rem;
+    line-height: 1.05;
+    text-align: center;
+  }
+
+  .reader-shell__quit {
+    width: 34px;
+    padding: 0;
+    justify-content: center;
     font-size: 0;
   }
 
-  .reader-shell__nav > a:last-child span {
+  .reader-shell__quit span {
     margin: 0;
     font-size: 1.35rem;
   }
@@ -1979,6 +2038,15 @@ html[data-reader-theme="night"] .reader-shell__nav > a:last-child {
   align-items: end;
   padding-bottom: 44px;
   border-bottom: 1px solid var(--line);
+}
+
+.catalog-header__rail {
+  display: flex;
+  align-self: stretch;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 28px;
 }
 
 .catalog-header h1,
@@ -2194,6 +2262,12 @@ html[data-reader-theme="night"] .reader-shell__nav > a:last-child {
   padding-bottom: 42px;
 }
 
+.book-detail-nav__links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
 .book-detail {
   display: grid;
   grid-template-columns: minmax(280px, 390px) minmax(0, 1fr);
@@ -2280,10 +2354,18 @@ html[data-reader-theme="night"] .reader-shell__nav > a:last-child {
     gap: 28px;
   }
 
+  .catalog-header__rail {
+    flex-direction: row;
+    align-items: center;
+  }
+
   .book-detail-nav {
-    align-items: flex-start;
-    flex-direction: column;
     gap: 18px;
+  }
+
+  .book-detail-nav__links {
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 }
 
@@ -2299,6 +2381,16 @@ html[data-reader-theme="night"] .reader-shell__nav > a:last-child {
 
   .library-grid {
     grid-template-columns: 1fr;
+  }
+
+  .book-detail-nav {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .book-detail-nav__links {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .catalog-search > div {

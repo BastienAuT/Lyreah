@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  AUDIO_PREFERENCES_VERSION,
   audioPreferencesStorageKey,
   DEFAULT_AUDIO_VOLUME,
   DEFAULT_EFFECTS_INTENSITY,
@@ -29,6 +30,27 @@ describe("audio preferences", () => {
       soundscapeId: "forest",
       volume: 72,
     });
+  });
+
+  test("migrates the former default visual intensity to 100 percent", () => {
+    expect(
+      parseAudioPreferences(
+        JSON.stringify({
+          effectsIntensity: 72,
+          performanceMode: false,
+          soundscapeId: "forest",
+          volume: 55,
+        }),
+      ).effectsIntensity,
+    ).toBe(100);
+    expect(
+      parseAudioPreferences(
+        JSON.stringify({
+          effectsIntensity: 72,
+          preferencesVersion: AUDIO_PREFERENCES_VERSION,
+        }),
+      ).effectsIntensity,
+    ).toBe(72);
   });
 
   test("clamps volume and rejects malformed values", () => {

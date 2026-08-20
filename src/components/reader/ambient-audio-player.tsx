@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  AUDIO_PREFERENCES_VERSION,
   audioPreferencesStorageKey,
   DEFAULT_AUDIO_VOLUME,
   DEFAULT_EFFECTS_INTENSITY,
@@ -940,6 +941,7 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
     window.localStorage.setItem(
       audioPreferencesStorageKey(bookId),
       JSON.stringify({
+        preferencesVersion: AUDIO_PREFERENCES_VERSION,
         effectsIntensity,
         performanceMode,
         soundscapeId: selectedSoundscapeId,

@@ -39,6 +39,29 @@
   color: #6d6388;
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.accountLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(109, 99, 136, 0.28);
+  border-radius: 999px;
+  color: #5f5576;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.accountLink:hover {
+  border-color: rgba(109, 99, 136, 0.48);
+  background: rgba(222, 216, 238, 0.42);
+}
+
 .main {
   width: min(820px, calc(100% - 48px));
   margin: 0 auto;
@@ -189,8 +212,11 @@
   }
 
   .backLink {
-    max-width: 130px;
-    text-align: right;
+    display: none;
+  }
+
+  .actions {
+    gap: 8px;
   }
 
   .main {

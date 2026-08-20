@@ -51,9 +51,14 @@ export default async function ReaderPage({
           <strong>{book.title}</strong>
           <span>{author}</span>
         </div>
-        <Link href={`/livres/${book.slug}`}>
-          <span aria-hidden="true">×</span> Quitter
-        </Link>
+        <div className="reader-shell__actions">
+          <Link className="reader-shell__account" href="/compte/settings">
+            Mon compte
+          </Link>
+          <Link className="reader-shell__quit" href={`/livres/${book.slug}`}>
+            <span aria-hidden="true">×</span> Quitter
+          </Link>
+        </div>
       </nav>
       <EpubReader
         bookId={book.id}

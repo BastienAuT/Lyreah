@@ -72,7 +72,10 @@ export default function CatalogPage({ searchParams }: { searchParams: CatalogSea
   return (
     <main className="catalog-page">
       <header className="catalog-header">
-        <Link className="brand-wordmark" href="/"><span className="brand-letter">L</span>yreah</Link>
+        <div className="catalog-header__rail">
+          <Link className="brand-wordmark" href="/"><span className="brand-letter">L</span>yreah</Link>
+          <Link className="page-account-link" href="/compte/settings">Mon compte</Link>
+        </div>
         <div>
           <p className="eyebrow">La collection Lyreah</p>
           <h1>Choisissez votre prochaine histoire.</h1>

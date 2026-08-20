@@ -42,7 +42,10 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
     <main className="book-detail-page">
       <nav className="book-detail-nav">
         <Link className="brand-wordmark" href="/"><span className="brand-letter">L</span>yreah</Link>
-        <Link href="/catalogue">← Retour au catalogue</Link>
+        <div className="book-detail-nav__links">
+          <Link href="/catalogue">← Retour au catalogue</Link>
+          <Link className="page-account-link" href="/compte/settings">Mon compte</Link>
+        </div>
       </nav>
       <article className="book-detail">
         <BookCover title={book.title} author={author} slug={book.slug} size="detail" />

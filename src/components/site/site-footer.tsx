@@ -13,6 +13,7 @@ export function SiteFooter() {
         </div>
         <nav className={styles.links} aria-label="Informations du site">
           <Link href="/catalogue">Catalogue</Link>
+          <Link href="/compte/settings">Mon compte</Link>
           <Link href="/politique-de-confidentialite">
             Politique de confidentialité
           </Link>

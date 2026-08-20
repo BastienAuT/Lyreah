@@ -1,5 +1,7 @@
 export const DEFAULT_AUDIO_VOLUME = 55;
-export const DEFAULT_EFFECTS_INTENSITY = 72;
+export const DEFAULT_EFFECTS_INTENSITY = 100;
+export const AUDIO_PREFERENCES_VERSION = 2;
+const LEGACY_DEFAULT_EFFECTS_INTENSITY = 72;
 
 export type AudioPreferences = {
   effectsIntensity: number;
@@ -23,16 +25,23 @@ export function parseAudioPreferences(value: string | null): AudioPreferences {
   }
 
   try {
-    const parsed = JSON.parse(value) as Partial<AudioPreferences>;
+    const parsed = JSON.parse(value) as Partial<AudioPreferences> & {
+      preferencesVersion?: number;
+    };
     const volume =
       typeof parsed.volume === "number" && Number.isFinite(parsed.volume)
         ? Math.min(100, Math.max(0, Math.round(parsed.volume)))
         : DEFAULT_AUDIO_VOLUME;
-    const effectsIntensity =
+    const storedEffectsIntensity =
       typeof parsed.effectsIntensity === "number" &&
       Number.isFinite(parsed.effectsIntensity)
         ? Math.min(100, Math.max(0, Math.round(parsed.effectsIntensity)))
         : DEFAULT_EFFECTS_INTENSITY;
+    const effectsIntensity =
+      parsed.preferencesVersion !== AUDIO_PREFERENCES_VERSION &&
+      storedEffectsIntensity === LEGACY_DEFAULT_EFFECTS_INTENSITY
+        ? DEFAULT_EFFECTS_INTENSITY
+        : storedEffectsIntensity;
 
     return {
       effectsIntensity,
