@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AccountLink } from "@/components/site/account-link";
 import { SiteFooter } from "@/components/site/site-footer";
 import styles from "./legal.module.css";
 
@@ -15,9 +16,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
             <Link className={styles.backLink} href="/">
               ← Retour à Lyreah
             </Link>
-            <Link className={styles.accountLink} href="/compte/settings">
-              Mon compte
-            </Link>
+            <AccountLink className={styles.accountLink} />
           </nav>
         </header>
         <main className={styles.main}>{children}</main>

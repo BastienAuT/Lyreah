@@ -6,6 +6,7 @@ import { getCatalogBookBySlug } from "@/catalog/queries";
 import { getCatalogCoverCredit } from "@/catalog/cover-credits";
 import { formatBookLanguage } from "@/catalog/languages";
 import { BookCover } from "@/components/catalog/book-cover";
+import { AccountLink } from "@/components/site/account-link";
 import { addBookToLibrary, removeBookFromLibrary } from "@/library/actions";
 import { getLibraryEntry } from "@/library/queries";
 import { createPublicPageMetadata } from "@/site/metadata";
@@ -42,11 +43,9 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
     <main className="book-detail-page">
       <nav className="book-detail-nav">
         <Link className="brand-wordmark" href="/"><span className="brand-letter">L</span>yreah</Link>
-        <div className="book-detail-nav__links">
-          <Link href="/catalogue">← Retour au catalogue</Link>
-          <Link className="page-account-link" href="/compte/settings">Mon compte</Link>
-        </div>
+        <AccountLink className="page-account-link" />
       </nav>
+      <Link className="book-detail-back" href="/catalogue">← Retour au catalogue</Link>
       <article className="book-detail">
         <BookCover title={book.title} author={author} slug={book.slug} size="detail" />
         <div className="book-detail__copy">

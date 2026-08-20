@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ensureCurrentProfile } from "@/auth/session";
 import { formatBookLanguage } from "@/catalog/languages";
 import { BookCover } from "@/components/catalog/book-cover";
+import { AccountLink } from "@/components/site/account-link";
 import { removeBookFromLibrary } from "@/library/actions";
 import { getLibraryBooks } from "@/library/queries";
 
@@ -14,13 +15,11 @@ export default async function LibraryPage() {
   return (
     <main className="library-shell">
       <div className="library-content">
-        <div className="library-topbar">
+        <div className="page-topbar">
           <Link className="brand-wordmark" href="/">
             <span className="brand-letter">L</span>yreah
           </Link>
-          <Link className="page-account-link" href="/compte/settings">
-            Mon compte
-          </Link>
+          <AccountLink className="page-account-link" />
         </div>
         <header className="library-header">
           <div>

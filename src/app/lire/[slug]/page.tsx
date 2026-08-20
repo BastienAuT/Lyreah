@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ensureCurrentProfile } from "@/auth/session";
 import { getCatalogBookBySlug } from "@/catalog/queries";
 import { EpubReader } from "@/components/reader/epub-reader";
+import { AccountLink } from "@/components/site/account-link";
 import { canReadBook } from "@/reader/access-rules";
 import { parseReaderPreferences } from "@/reader/preferences";
 
@@ -52,12 +53,10 @@ export default async function ReaderPage({
           <span>{author}</span>
         </div>
         <div className="reader-shell__actions">
-          <Link className="reader-shell__account" href="/compte/settings">
-            Mon compte
-          </Link>
           <Link className="reader-shell__quit" href={`/livres/${book.slug}`}>
             <span aria-hidden="true">×</span> Quitter
           </Link>
+          <AccountLink className="page-account-link reader-shell__account" />
         </div>
       </nav>
       <EpubReader

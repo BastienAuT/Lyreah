@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { getCatalogBooks, getCatalogCategories } from "@/catalog/queries";
 import { BookCard } from "@/components/catalog/book-card";
+import { AccountLink } from "@/components/site/account-link";
 import { createPublicPageMetadata } from "@/site/metadata";
 
 export const metadata: Metadata = createPublicPageMetadata({
@@ -72,11 +73,11 @@ export default function CatalogPage({ searchParams }: { searchParams: CatalogSea
   return (
     <main className="catalog-page">
       <header className="catalog-header">
-        <div className="catalog-header__rail">
+        <div className="page-topbar">
           <Link className="brand-wordmark" href="/"><span className="brand-letter">L</span>yreah</Link>
-          <Link className="page-account-link" href="/compte/settings">Mon compte</Link>
+          <AccountLink className="page-account-link" />
         </div>
-        <div>
+        <div className="catalog-header__intro">
           <p className="eyebrow">La collection Lyreah</p>
           <h1>Choisissez votre prochaine histoire.</h1>
           <p>Des œuvres du domaine public, préparées pour une lecture calme et immersive.</p>

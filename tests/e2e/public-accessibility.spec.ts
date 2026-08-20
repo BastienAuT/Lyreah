@@ -31,6 +31,25 @@ test("la navigation publique est utilisable au clavier", async ({ page }) => {
   await expect(search).toHaveCSS("outline-style", "solid");
 });
 
+test("l’accès au compte reste en haut à droite des pages publiques", async ({
+  page,
+}) => {
+  for (const path of ["/", "/catalogue", "/livres/frankenstein"]) {
+    await page.goto(path);
+    const accountLink = page
+      .getByRole("link", { name: "Se connecter", exact: true })
+      .first();
+    await expect(accountLink).toBeVisible();
+    const [box, viewport] = await Promise.all([
+      accountLink.boundingBox(),
+      page.evaluate(() => ({ width: window.innerWidth })),
+    ]);
+    expect(box).not.toBeNull();
+    expect(box!.x + box!.width / 2).toBeGreaterThan(viewport.width / 2);
+    expect(box!.y).toBeLessThan(140);
+  }
+});
+
 test("les couvertures de la sélection se chargent sur petit écran", async ({
   page,
 }) => {

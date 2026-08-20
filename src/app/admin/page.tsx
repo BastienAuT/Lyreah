@@ -41,7 +41,9 @@ export default async function AdminPage() {
           </div>
           <div className="admin-identity">
             <span>Administrateur</span>
-            <strong>{user.name || user.email}</strong>
+            <Link className="admin-account-link" href="/compte/settings">
+              {user.name || "Mon compte"}
+            </Link>
           </div>
         </header>
 

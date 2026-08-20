@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AccountLink } from "./account-link";
 import styles from "./site-footer.module.css";
 
 export function SiteFooter() {
@@ -13,7 +14,7 @@ export function SiteFooter() {
         </div>
         <nav className={styles.links} aria-label="Informations du site">
           <Link href="/catalogue">Catalogue</Link>
-          <Link href="/compte/settings">Mon compte</Link>
+          <AccountLink />
           <Link href="/politique-de-confidentialite">
             Politique de confidentialité
           </Link>

@@ -1,10 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { connection } from "next/server";
 import { catalogCoverPaths } from "@/catalog/cover-assets";
 import { ReaderPreviewCarousel } from "@/components/home/reader-preview-carousel";
+import { AccountLink } from "@/components/site/account-link";
 import { SiteFooter } from "@/components/site/site-footer";
-import { getCurrentUser } from "@/auth/session";
 
 const books = [
   {
@@ -39,11 +38,7 @@ const categories = [
   { label: "Voyage", slug: "voyage" },
 ];
 
-export default async function Home() {
-  await connection();
-  const user = await getCurrentUser();
-  const accountLabel = user?.name?.trim() || "Mon profil";
-
+export default function Home() {
   return (
     <>
       <main>
@@ -69,13 +64,7 @@ export default async function Home() {
             >
               <span aria-hidden="true" />
             </Link>
-            <Link
-              className="account-link"
-              href={user ? "/compte/settings" : "/auth/sign-in"}
-              aria-label={user ? `Ouvrir le profil de ${accountLabel}` : undefined}
-            >
-              {user ? accountLabel : "Se connecter"}
-            </Link>
+            <AccountLink className="account-link" />
           </div>
         </header>
 
