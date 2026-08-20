@@ -11,6 +11,10 @@ test("ajout à la bibliothèque, lecture et reprise de progression", async ({ pa
 
   await page.getByRole("link", { name: "Commencer la lecture" }).click();
   await expectReaderReady(page);
+  await expect(page.locator(".epub-reader__viewer iframe")).toHaveAttribute(
+    "title",
+    "Contenu du livre « Frankenstein »",
+  );
   await page.getByRole("button", { name: "Page suivante" }).click();
   const progress = page.getByRole("progressbar", { name: "Progression du livre" });
   await expect.poll(async () => Number(await progress.getAttribute("aria-valuenow"))).toBeGreaterThan(0);

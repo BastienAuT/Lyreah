@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/auth/session";
 import { parseSoundscapeManifest } from "@/audio/manifest";
 import { getSoundscapesForBook } from "@/audio/queries";
+import { SIGNED_AUDIO_URL_LIFETIME_SECONDS } from "@/audio/signed-url-refresh";
 import { getReadableBookById } from "@/reader/queries";
 import {
   createNestedStoragePath,
@@ -8,8 +9,6 @@ import {
   createStorageResourcePrefix,
   downloadStorageObject,
 } from "@/storage/supabase";
-
-const SIGNED_URL_LIFETIME_SECONDS = 15 * 60;
 
 export async function GET(
   _request: Request,
@@ -38,6 +37,7 @@ export async function GET(
   }
 
   try {
+    const issuedAt = Date.now();
     const preparedSoundscapes = await Promise.all(
       soundscapes.map(async (soundscape) => {
         const soundscapePrefix = createStorageResourcePrefix("audio", soundscape.id);
@@ -61,7 +61,7 @@ export async function GET(
             volume: layer.volume,
             url: await createSignedReadUrl(
               createNestedStoragePath("audio", soundscape.id, layer.file),
-              SIGNED_URL_LIFETIME_SECONDS,
+              SIGNED_AUDIO_URL_LIFETIME_SECONDS,
             ),
           })),
         );
@@ -91,7 +91,9 @@ export async function GET(
             (soundscape) => soundscape.id === defaultSoundscapeId,
           ) ?? null,
         soundscapes: preparedSoundscapes,
-        expiresIn: SIGNED_URL_LIFETIME_SECONDS,
+        issuedAt,
+        expiresAt: issuedAt + SIGNED_AUDIO_URL_LIFETIME_SECONDS * 1_000,
+        expiresIn: SIGNED_AUDIO_URL_LIFETIME_SECONDS,
       },
       { headers: { "Cache-Control": "private, no-store" } },
     );

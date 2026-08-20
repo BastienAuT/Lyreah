@@ -109,3 +109,8 @@ export default async function AdminPage() {
     </main>
   );
 }
+import type { Metadata } from "next";
+export const metadata: Metadata = {
+  title: "Administration",
+  robots: { index: false, follow: false },
+};

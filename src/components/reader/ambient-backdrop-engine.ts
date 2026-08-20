@@ -279,8 +279,10 @@ function createFogNoise() {
 
 export function useAmbientBackdropEngine(
   canvasRef: RefObject<HTMLCanvasElement | null>,
+  enabled = true,
 ) {
   useEffect(() => {
+    if (!enabled) return;
     const canvasElement = canvasRef.current;
     if (!canvasElement) return;
     const containerElement = canvasElement.parentElement;
@@ -292,11 +294,12 @@ export function useAmbientBackdropEngine(
     const context: CanvasRenderingContext2D = contextElement;
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const fireflies = createParticles(38, 0x6c797265);
+    const fireflies = createParticles(52, 0x6c797265);
     const stars = createParticles(30, 0x73746172);
     const rain = createParticles(168, 0x7261696e);
     const birds = createParticles(18, 0x62697264);
     const bubbles = createParticles(36, 0x62756262);
+    const fish = createParticles(24, 0x66697368);
     const harborLights = createParticles(14, 0x68617262);
     const fogNoise = createFogNoise();
     let width = 0;
@@ -506,6 +509,58 @@ export function useAmbientBackdropEngine(
           }
         }
 
+        // A layered grove and low shrubs make the clearing feel inhabited,
+        // while keeping the brighter center open for the fireflies.
+        const groveCount = performanceMode ? 3 : 6;
+        const groveRandom = seededRandom(0x47524f56 + regionIndex * 997);
+        for (let tree = 0; tree < groveCount; tree += 1) {
+          const slot = (tree + 0.2 + groveRandom() * 0.6) / groveCount;
+          const treeX = region.left + region.width * (0.05 + slot * 0.9);
+          const treeTop = height * (0.25 + groveRandom() * 0.28);
+          const treeBase = horizon + 18 + groveRandom() * height * 0.24;
+          const depth = 0.48 + groveRandom() * 0.42;
+          const sway = Math.sin(elapsed * 0.00035 + tree * 1.7) * 2.5;
+
+          context.strokeStyle = rgba(
+            SCENE_COLORS.forestTrunk,
+            intensity * (0.42 + depth * 0.42),
+          );
+          context.lineWidth = 2 + depth * 3;
+          context.beginPath();
+          context.moveTo(treeX, treeBase);
+          context.quadraticCurveTo(treeX - sway, (treeBase + treeTop) / 2, treeX + sway, treeTop);
+          context.stroke();
+
+          context.fillStyle = rgba(
+            tree % 2 ? SCENE_COLORS.forestLeaf : SCENE_COLORS.fieldGrass,
+            intensity * (0.48 + depth * 0.38),
+          );
+          for (let crown = 0; crown < 4; crown += 1) {
+            context.beginPath();
+            context.arc(
+              treeX + (crown - 1.5) * (6 + depth * 5) + sway,
+              treeTop + Math.abs(crown - 1.5) * 5,
+              11 + depth * 10,
+              0,
+              Math.PI * 2,
+            );
+            context.fill();
+          }
+        }
+
+        const shrubCount = performanceMode ? 5 : 10;
+        const shrubRandom = seededRandom(0x53485242 + regionIndex * 991);
+        context.fillStyle = rgba(SCENE_COLORS.fieldGrass, intensity * 0.9);
+        for (let shrub = 0; shrub < shrubCount; shrub += 1) {
+          const shrubSlot = (shrub + 0.18 + shrubRandom() * 0.64) / shrubCount;
+          const shrubX = region.left + region.width * (0.03 + shrubSlot * 0.94);
+          const shrubY = horizon + 8 + shrubRandom() * 28;
+          const shrubRadius = 7 + shrubRandom() * 10;
+          context.beginPath();
+          context.arc(shrubX, shrubY, shrubRadius, Math.PI, Math.PI * 2);
+          context.fill();
+        }
+
         const random = seededRandom(0x6669656c + regionIndex);
         const bladeCount = performanceMode ? 22 : 44;
         context.strokeStyle = rgba(SCENE_COLORS.fieldGrass, intensity * 0.76);
@@ -703,6 +758,51 @@ export function useAmbientBackdropEngine(
           Math.PI * 2,
         );
         context.fill();
+
+        if (region.side === -1 && region.width > 76) {
+          const catScale = Math.min(1, Math.max(0.55, region.width / 190));
+          const catX = region.left + region.width * 0.52;
+          const catY = height * 0.815;
+          const breathing = reducedMotion.matches
+            ? 1
+            : 1 + Math.sin(elapsed * 0.00135) * 0.025;
+          const catColor: Rgb = theme === "night" ? [24, 23, 29] : [56, 47, 50];
+
+          context.save();
+          context.translate(catX, catY);
+          context.scale(catScale, catScale * breathing);
+          context.fillStyle = rgba(catColor, intensity * 0.96);
+          context.beginPath();
+          context.ellipse(0, 0, 43, 20, -0.08, 0, Math.PI * 2);
+          context.fill();
+
+          context.beginPath();
+          context.arc(31, -12, 15, 0, Math.PI * 2);
+          context.fill();
+          context.beginPath();
+          context.moveTo(20, -22);
+          context.lineTo(23, -39);
+          context.lineTo(34, -25);
+          context.moveTo(34, -25);
+          context.lineTo(43, -38);
+          context.lineTo(44, -19);
+          context.fill();
+
+          context.strokeStyle = rgba(catColor, intensity);
+          context.lineWidth = 8;
+          context.lineCap = "round";
+          context.beginPath();
+          context.arc(-19, -1, 27, Math.PI * 0.8, Math.PI * 2.02);
+          context.stroke();
+
+          context.strokeStyle = rgba(SCENE_COLORS.windowLight, intensity * 0.62);
+          context.lineWidth = 1.5;
+          context.beginPath();
+          context.moveTo(31, -12);
+          context.quadraticCurveTo(35, -9, 39, -12);
+          context.stroke();
+          context.restore();
+        }
       });
       context.restore();
     }
@@ -817,6 +917,63 @@ export function useAmbientBackdropEngine(
           sunRadius * 2,
         );
 
+        // A visible sun, soft cloud bands and rolling hills ground the scene
+        // in a recognisable dawn landscape.
+        context.fillStyle = rgba(SCENE_COLORS.fireBright, intensity * 0.78);
+        context.beginPath();
+        context.arc(
+          sunX,
+          sunY,
+          Math.max(9, Math.min(22, region.width * 0.09)),
+          0,
+          Math.PI * 2,
+        );
+        context.fill();
+
+        context.strokeStyle = rgba(SCENE_COLORS.fireBright, intensity * 0.18);
+        context.lineWidth = Math.max(2, region.width * 0.018);
+        context.lineCap = "round";
+        for (let cloud = 0; cloud < 3; cloud += 1) {
+          const cloudY = height * (0.18 + cloud * 0.09);
+          const cloudDrift = Math.sin(elapsed * 0.00009 + cloud + regionIndex) * 8;
+          context.beginPath();
+          context.moveTo(region.left + region.width * 0.12 + cloudDrift, cloudY);
+          context.bezierCurveTo(
+            region.left + region.width * 0.3 + cloudDrift,
+            cloudY - 8,
+            region.left + region.width * 0.58 + cloudDrift,
+            cloudY + 7,
+            region.left + region.width * 0.82 + cloudDrift,
+            cloudY - 2,
+          );
+          context.stroke();
+        }
+
+        const hillY = height * 0.7;
+        context.fillStyle = rgba(SCENE_COLORS.dawnTreeFar, intensity * 0.74);
+        context.beginPath();
+        context.moveTo(region.left, hillY);
+        context.bezierCurveTo(
+          region.left + region.width * 0.22,
+          hillY - height * 0.09,
+          region.left + region.width * 0.42,
+          hillY + height * 0.025,
+          region.left + region.width * 0.62,
+          hillY - height * 0.06,
+        );
+        context.bezierCurveTo(
+          region.left + region.width * 0.78,
+          hillY - height * 0.1,
+          region.left + region.width * 0.9,
+          hillY - height * 0.015,
+          region.left + region.width,
+          hillY - height * 0.04,
+        );
+        context.lineTo(region.left + region.width, height);
+        context.lineTo(region.left, height);
+        context.closePath();
+        context.fill();
+
         const treeCount = performanceMode ? 3 : 5;
         for (let tree = 0; tree < treeCount; tree += 1) {
           const depth = 0.55 + ((tree * 37) % 4) * 0.12;
@@ -877,19 +1034,64 @@ export function useAmbientBackdropEngine(
           if ((width < 760 && index > 5) || (performanceMode && index % 2)) return;
           const travel =
             (bird.x + elapsed * (0.000025 + bird.speed * 0.000016)) % 1.16;
-          const x = region.left - 22 + travel * (region.width + 44);
-          const y = height * (0.12 + bird.y * 0.37) + Math.sin(
-            elapsed * 0.0012 * bird.speed + bird.phase,
-          ) * 8;
-          const wing = Math.sin(elapsed * 0.006 * bird.speed + bird.phase) * 4;
-          const size = 3.5 + bird.size * 2.8;
-          context.strokeStyle = rgba(SCENE_COLORS.bird, intensity * 0.82 * bird.depth);
-          context.lineWidth = Math.max(1, bird.depth * 1.45);
+          const direction = index % 4 === 0 ? -1 : 1;
+          const route = direction > 0 ? travel : 1.16 - travel;
+          const x = region.left - 22 + route * (region.width + 44);
+          const y =
+            height * (0.12 + bird.y * 0.37) +
+            Math.sin(elapsed * 0.00034 * bird.speed + bird.phase) * 4.5 +
+            Math.sin(elapsed * 0.0021 * bird.speed + bird.phase) * 1.2;
+          const rawFlap = Math.sin(elapsed * 0.0034 * bird.speed + bird.phase);
+          const flap = rawFlap > 0.25 ? rawFlap : -0.08;
+          const size = 4.8 + bird.size * 3.2;
+          const birdColor = rgba(SCENE_COLORS.bird, intensity * 0.86 * bird.depth);
+
+          context.save();
+          context.translate(x, y);
+          context.scale(direction, 1);
+          context.rotate(Math.sin(elapsed * 0.0007 + bird.phase) * 0.08);
+          context.fillStyle = birdColor;
+
+          // Side-view body, head, beak and tail remain readable while the
+          // asymmetric wings flap above and below the body.
           context.beginPath();
-          context.moveTo(x - size, y + wing * 0.18);
-          context.quadraticCurveTo(x - size * 0.42, y - size - wing, x, y);
-          context.quadraticCurveTo(x + size * 0.42, y - size + wing, x + size, y + wing * 0.18);
-          context.stroke();
+          context.ellipse(0, 0, size, size * 0.38, -0.08, 0, Math.PI * 2);
+          context.fill();
+          context.beginPath();
+          context.arc(size * 0.78, -size * 0.12, size * 0.31, 0, Math.PI * 2);
+          context.fill();
+          context.beginPath();
+          context.moveTo(size * 1.02, -size * 0.18);
+          context.lineTo(size * 1.42, -size * 0.06);
+          context.lineTo(size * 1.02, size * 0.02);
+          context.closePath();
+          context.fill();
+          context.beginPath();
+          context.moveTo(-size * 0.78, -size * 0.12);
+          context.lineTo(-size * 1.34, -size * 0.5);
+          context.lineTo(-size * 1.08, size * 0.08);
+          context.lineTo(-size * 1.32, size * 0.42);
+          context.closePath();
+          context.fill();
+
+          context.beginPath();
+          context.moveTo(-size * 0.25, -size * 0.08);
+          context.bezierCurveTo(
+            -size * 0.12,
+            -size * (0.7 + flap * 0.5),
+            size * 0.35,
+            -size * (0.9 + flap * 0.35),
+            size * 0.48,
+            -size * 0.08,
+          );
+          context.quadraticCurveTo(size * 0.08, size * 0.12, -size * 0.25, -size * 0.08);
+          context.fill();
+
+          context.fillStyle = rgba(SCENE_COLORS.fireBright, intensity * 0.7);
+          context.beginPath();
+          context.arc(size * 0.88, -size * 0.2, Math.max(0.7, size * 0.065), 0, Math.PI * 2);
+          context.fill();
+          context.restore();
         });
       });
 
@@ -1254,7 +1456,7 @@ export function useAmbientBackdropEngine(
           const phase =
             elapsed * (0.0033 + flame * 0.00027) + flame * 1.43 + sidePhase;
           const baseX =
-            openingX + openingWidth * (0.24 + ((flame * 0.61) % 0.54));
+            openingX + openingWidth * (0.22 + ((flame + 1) / (flameCount + 1)) * 0.56);
           const baseY = openingBottom - openingHeight * 0.12;
           const flameHeight =
             openingHeight * (0.25 + (flame % 3) * 0.095) *
@@ -1405,6 +1607,69 @@ export function useAmbientBackdropEngine(
           context.arc(x, y, 0.8 + random() * 1.7, 0, Math.PI * 2);
           context.fill();
         }
+      }
+
+      const boatRegion =
+        regions.find((region) => region.side === 1 && region.width > 70) ??
+        regions.find((region) => region.width > 70);
+      if (boatRegion) {
+        const drift = reducedMotion.matches
+          ? 0
+          : Math.sin(elapsed * 0.00011) * boatRegion.width * 0.09 +
+            Math.sin(elapsed * 0.000037 + 1.7) * boatRegion.width * 0.045;
+        const bob = reducedMotion.matches
+          ? 0
+          : Math.sin(elapsed * 0.00105) * 3.2 + Math.sin(elapsed * 0.00041) * 1.6;
+        const tilt = reducedMotion.matches
+          ? -0.025
+          : Math.sin(elapsed * 0.00072 + 0.8) * 0.045;
+        const boatScale = Math.min(1, Math.max(0.58, boatRegion.width / 180));
+        const boatX = boatRegion.left + boatRegion.width * 0.52 + drift;
+        const boatY = height * 0.37 + bob;
+
+        context.save();
+        context.translate(boatX, boatY);
+        context.rotate(tilt);
+        context.scale(boatScale, boatScale);
+
+        context.fillStyle = rgba(SCENE_COLORS.driftwood, intensity * 0.96);
+        context.beginPath();
+        context.moveTo(-43, -5);
+        context.quadraticCurveTo(-32, 18, 0, 22);
+        context.quadraticCurveTo(32, 18, 43, -5);
+        context.quadraticCurveTo(0, 4, -43, -5);
+        context.closePath();
+        context.fill();
+        context.strokeStyle = rgba([62, 47, 36], intensity * 0.92);
+        context.lineWidth = 2.4;
+        context.stroke();
+
+        context.strokeStyle = rgba(SCENE_COLORS.sandLight, intensity * 0.78);
+        context.lineWidth = 2;
+        [-18, 4, 24].forEach((seatX) => {
+          context.beginPath();
+          context.moveTo(seatX - 9, 3);
+          context.lineTo(seatX + 8, 5);
+          context.stroke();
+        });
+
+        context.strokeStyle = rgba(SCENE_COLORS.driftwood, intensity * 0.84);
+        context.lineWidth = 3;
+        context.beginPath();
+        context.moveTo(-8, 3);
+        context.lineTo(-48, 27);
+        context.moveTo(11, 4);
+        context.lineTo(50, 24);
+        context.stroke();
+        context.restore();
+
+        const reflection = context.createLinearGradient(boatX, boatY + 16, boatX, boatY + 58);
+        reflection.addColorStop(0, rgba(SCENE_COLORS.driftwood, intensity * 0.22));
+        reflection.addColorStop(1, rgba(SCENE_COLORS.seaDeep, 0));
+        context.fillStyle = reflection;
+        context.beginPath();
+        context.ellipse(boatX, boatY + 24, 38 * boatScale, 5, tilt, 0, Math.PI * 2);
+        context.fill();
       }
 
       regions.forEach((region, regionIndex) => {
@@ -1760,23 +2025,29 @@ export function useAmbientBackdropEngine(
         const walkerCount = performanceMode || region.width < 180 ? 1 : 2;
         for (let walker = 0; walker < walkerCount; walker += 1) {
           const walkerCycle =
-            (elapsed / 42_000 + regionIndex * 0.31 + walker * 0.56) % 1;
-          if (!reducedMotion.matches && walkerCycle >= 0.46) continue;
-          const travel = reducedMotion.matches ? 0.58 : walkerCycle / 0.46;
+            (elapsed / 70_000 + regionIndex * 0.31 + walker * 0.56) % 1;
+          if (!reducedMotion.matches && walkerCycle >= 0.58) continue;
+          const travel = reducedMotion.matches ? 0.58 : walkerCycle / 0.58;
           const direction = (regionIndex + walker) % 2 === 0 ? 1 : -1;
           const walkerX =
             direction > 0
               ? region.left - 38 + travel * (region.width + 76)
               : region.left + region.width + 38 - travel * (region.width + 76);
           const scale = Math.min(1, Math.max(0.62, region.width / 230));
-          const step = reducedMotion.matches
+          const gaitPhase = reducedMotion.matches
             ? 0
-            : Math.sin(elapsed * 0.006 + walker * 2.1);
-          const bob = Math.abs(step) * 2.5 * scale;
+            : travel * Math.PI * 2 * (13 + walker * 2) + walker * 1.4;
+          const step = Math.sin(gaitPhase);
+          const draggingStep = Math.sin(gaitPhase + 2.42) * 0.32;
+          const leftLift = Math.max(0, step) * 5;
+          const rightLift = Math.max(0, draggingStep) * 2;
+          const bob = (1 - Math.cos(gaitPhase * 2)) * 0.58 * scale;
+          const lurch = reducedMotion.matches ? -0.055 : -0.075 + step * 0.025;
           const silhouette = walker % 2 ? [25, 33, 27] as Rgb : [31, 39, 30] as Rgb;
           context.save();
           context.translate(walkerX, groundY - bob);
           context.scale(direction * scale, scale);
+          context.rotate(lurch);
           context.lineCap = "round";
           context.lineJoin = "round";
 
@@ -1784,11 +2055,11 @@ export function useAmbientBackdropEngine(
           context.lineWidth = 10;
           context.beginPath();
           context.moveTo(-8, -47);
-          context.lineTo(-17 - step * 9, -18);
-          context.lineTo(-10 + step * 12, 2);
+          context.lineTo(-15 - step * 5, -20);
+          context.lineTo(-19 + step * 14, 2 - leftLift);
           context.moveTo(9, -45);
-          context.lineTo(19 + step * 8, -18);
-          context.lineTo(12 - step * 12, 2);
+          context.lineTo(18 + draggingStep * 3, -18);
+          context.lineTo(24 - draggingStep * 6, 2 - rightLift);
           context.stroke();
 
           context.fillStyle = rgba(silhouette, intensity);
@@ -1800,16 +2071,16 @@ export function useAmbientBackdropEngine(
           context.closePath();
           context.fill();
 
-          const armSwing = step * 13;
+          const shoulderRoll = reducedMotion.matches ? 0 : Math.sin(gaitPhase * 0.5) * 4;
           context.strokeStyle = rgba(SCENE_COLORS.zombieSkin, intensity * 0.92);
           context.lineWidth = 8;
           context.beginPath();
           context.moveTo(-12, -91);
-          context.lineTo(-27 - armSwing * 0.35, -68);
-          context.lineTo(-35 - armSwing, -47);
+          context.lineTo(-25 - shoulderRoll, -73);
+          context.lineTo(-40 - shoulderRoll * 0.6, -70 + step * 2);
           context.moveTo(12, -91);
-          context.lineTo(30 + armSwing * 0.3, -73);
-          context.lineTo(42 + armSwing * 0.65, -70);
+          context.lineTo(29 + shoulderRoll * 0.4, -77);
+          context.lineTo(47 + shoulderRoll, -73 - step * 2);
           context.stroke();
 
           context.fillStyle = rgba(SCENE_COLORS.zombieSkin, intensity * 0.96);
@@ -4159,6 +4430,7 @@ export function useAmbientBackdropEngine(
     function drawUnderwater(elapsed: number, palette: MarinePalette) {
       const bounds = pageBounds();
       context.save();
+      clipToSides(bounds);
 
       const depth = context.createLinearGradient(0, 0, 0, height);
       depth.addColorStop(0, rgba(palette.glow, intensity * 0.3));
@@ -4204,6 +4476,182 @@ export function useAmbientBackdropEngine(
         }
         context.stroke();
       }
+
+      const underwaterRegions = sideRegions(bounds);
+      underwaterRegions.forEach((region, regionIndex) => {
+        if (region.width < 24) return;
+        const floorY = height * 0.88;
+        const floor = context.createLinearGradient(0, floorY, 0, height);
+        floor.addColorStop(0, rgba(palette.deep, intensity * 0.18));
+        floor.addColorStop(1, rgba([18, 63, 65], intensity * 0.72));
+        context.fillStyle = floor;
+        context.beginPath();
+        context.moveTo(region.left, floorY + 8);
+        for (let point = 0; point <= 8; point += 1) {
+          const x = region.left + (region.width * point) / 8;
+          const y = floorY + Math.sin(point * 1.7 + regionIndex) * 7;
+          context.lineTo(x, y);
+        }
+        context.lineTo(region.left + region.width, height);
+        context.lineTo(region.left, height);
+        context.closePath();
+        context.fill();
+
+        const coralCount = performanceMode ? 2 : Math.max(3, Math.round(region.width / 70));
+        const coralRandom = seededRandom(0x434f5241 + regionIndex * 1_009);
+        for (let coral = 0; coral < coralCount; coral += 1) {
+          const slot = (coral + 0.22 + coralRandom() * 0.56) / coralCount;
+          const coralX = region.left + region.width * (0.06 + slot * 0.88);
+          const coralY = floorY + 8 + coralRandom() * 13;
+          const coralScale = 0.55 + coralRandom() * 0.65;
+          const coralColor: Rgb = coral % 3 === 0
+            ? [220, 105, 94]
+            : coral % 3 === 1
+              ? [224, 161, 93]
+              : [157, 105, 169];
+
+          context.fillStyle = rgba([58, 91, 82], intensity * 0.8);
+          context.beginPath();
+          context.ellipse(coralX, coralY + 7, 18 * coralScale, 7 * coralScale, 0, 0, Math.PI * 2);
+          context.fill();
+
+          context.strokeStyle = rgba(coralColor, intensity * 0.82);
+          context.lineWidth = Math.max(2, 5 * coralScale);
+          context.lineCap = "round";
+          const branchCount = performanceMode ? 3 : 5;
+          for (let branch = 0; branch < branchCount; branch += 1) {
+            const branchOffset = (branch - (branchCount - 1) / 2) * 6 * coralScale;
+            const branchHeight = (24 + (branch % 3) * 11) * coralScale;
+            const currentSway = reducedMotion.matches
+              ? 0
+              : Math.sin(elapsed * 0.0003 + coral * 1.7 + branch) * 1.8;
+            context.beginPath();
+            context.moveTo(coralX + branchOffset * 0.35, coralY + 4);
+            context.bezierCurveTo(
+              coralX + branchOffset,
+              coralY - branchHeight * 0.42,
+              coralX + branchOffset + currentSway,
+              coralY - branchHeight * 0.72,
+              coralX + branchOffset * 1.3 + currentSway,
+              coralY - branchHeight,
+            );
+            context.stroke();
+
+            if (branch % 2 === 0) {
+              context.beginPath();
+              context.moveTo(coralX + branchOffset, coralY - branchHeight * 0.54);
+              context.lineTo(
+                coralX + branchOffset + (branch % 4 ? 9 : -9) * coralScale,
+                coralY - branchHeight * 0.72,
+              );
+              context.stroke();
+            }
+          }
+        }
+
+        const kelpCount = performanceMode ? 5 : Math.max(7, Math.round(region.width / 24));
+        const kelpRandom = seededRandom(0x4b454c50 + regionIndex * 1_013);
+        for (let kelp = 0; kelp < kelpCount; kelp += 1) {
+          const slot = (kelp + 0.15 + kelpRandom() * 0.7) / kelpCount;
+          const baseX = region.left + region.width * (0.04 + slot * 0.92);
+          const baseY = floorY + 6 + kelpRandom() * 18;
+          const plantHeight = 42 + kelpRandom() * Math.min(150, height * 0.22);
+          const swaySpeed = 0.00042 + kelpRandom() * 0.00018;
+          const swayDistance = 8 + kelpRandom() * 11;
+          const sway = reducedMotion.matches
+            ? 0
+            : Math.sin(elapsed * swaySpeed + kelp) * swayDistance;
+          const kelpColor: Rgb = kelp % 3 === 0 ? [43, 119, 91] : [29, 92, 78];
+
+          context.strokeStyle = rgba(kelpColor, intensity * (0.56 + kelpRandom() * 0.3));
+          context.lineWidth = 2.2 + kelpRandom() * 2.8;
+          context.lineCap = "round";
+          context.beginPath();
+          context.moveTo(baseX, baseY);
+          context.bezierCurveTo(
+            baseX - sway * 0.45,
+            baseY - plantHeight * 0.35,
+            baseX + sway * 0.25,
+            baseY - plantHeight * 0.72,
+            baseX + sway,
+            baseY - plantHeight,
+          );
+          context.stroke();
+
+          if (!performanceMode || kelp % 2 === 0) {
+            context.fillStyle = rgba(kelpColor, intensity * 0.62);
+            for (let leaf = 1; leaf < 5; leaf += 1) {
+              const progress = leaf / 5;
+              const leafX = baseX + sway * progress;
+              const leafY = baseY - plantHeight * progress;
+              const direction = leaf % 2 ? 1 : -1;
+              context.beginPath();
+              context.ellipse(
+                leafX + direction * 7,
+                leafY,
+                10 + kelpRandom() * 5,
+                3.5 + kelpRandom() * 2,
+                direction * -0.38,
+                0,
+                Math.PI * 2,
+              );
+              context.fill();
+            }
+          }
+        }
+      });
+
+      fish.forEach((swimmer, index) => {
+        if (index >= (performanceMode ? 6 : 12)) return;
+        const region = swimmer.side < 0 ? underwaterRegions[0] : underwaterRegions[1];
+        if (!region || region.width < 34) return;
+        const direction = index % 3 === 0 ? -1 : 1;
+        const travel =
+          (swimmer.x + elapsed * (0.000012 + swimmer.speed * 0.000009)) % 1.18;
+        const route = direction > 0 ? travel : 1.18 - travel;
+        const fishX = region.left - 24 + route * (region.width + 48);
+        const fishY =
+          height * (0.2 + swimmer.y * 0.52) +
+          Math.sin(elapsed * 0.00048 * swimmer.speed + swimmer.phase) *
+            (5 + swimmer.drift * 3);
+        const pitch = reducedMotion.matches
+          ? 0
+          : Math.cos(elapsed * 0.00048 * swimmer.speed + swimmer.phase) * 0.12;
+        const fishSize = 3.8 + swimmer.size * 3.2;
+        const fishColor: Rgb = index % 4 === 0
+          ? [224, 147, 83]
+          : index % 4 === 1
+            ? palette.glow
+            : index % 4 === 2
+              ? [95, 179, 165]
+              : palette.foam;
+
+        context.save();
+        context.translate(fishX, fishY);
+        context.rotate(direction * pitch);
+        context.scale(direction, 1);
+        context.fillStyle = rgba(fishColor, intensity * (0.52 + swimmer.depth * 0.36));
+        context.beginPath();
+        context.ellipse(0, 0, fishSize, fishSize * 0.48, 0, 0, Math.PI * 2);
+        context.fill();
+        context.beginPath();
+        context.moveTo(-fishSize * 0.8, 0);
+        context.lineTo(-fishSize * 1.55, -fishSize * 0.68);
+        context.lineTo(-fishSize * 1.42, fishSize * 0.68);
+        context.closePath();
+        context.fill();
+        context.beginPath();
+        context.moveTo(-fishSize * 0.12, -fishSize * 0.25);
+        context.lineTo(fishSize * 0.28, -fishSize * 0.85);
+        context.lineTo(fishSize * 0.52, -fishSize * 0.18);
+        context.closePath();
+        context.fill();
+        context.fillStyle = rgba([14, 42, 48], intensity * 0.9);
+        context.beginPath();
+        context.arc(fishSize * 0.56, -fishSize * 0.12, Math.max(0.65, fishSize * 0.08), 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+      });
 
       bubbles.forEach((bubble, index) => {
         if ((width < 760 && index % 2) || (performanceMode && index % 2)) return;
@@ -4635,6 +5083,6 @@ export function useAmbientBackdropEngine(
       reducedMotion.removeEventListener("change", syncState);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [canvasRef]);
+  }, [canvasRef, enabled]);
 
 }

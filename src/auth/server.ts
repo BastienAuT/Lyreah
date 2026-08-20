@@ -3,7 +3,7 @@ import "server-only";
 import { createNeonAuth } from "@neondatabase/auth/next/server";
 
 function requireEnvironmentVariable(name: string) {
-  const value = process.env[name];
+  const value = process.env[name]?.trim();
 
   if (!value) {
     throw new Error(`${name} is not configured.`);

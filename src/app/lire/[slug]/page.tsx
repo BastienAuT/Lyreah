@@ -17,7 +17,12 @@ export async function generateMetadata({
   const { slug } = await params;
   const book = await getCatalogBookBySlug(slug);
 
-  return book ? { title: `Lire ${book.title} — Lyreah` } : {};
+  return book
+    ? {
+        title: `Lire ${book.title}`,
+        robots: { index: false, follow: false },
+      }
+    : {};
 }
 
 export default async function ReaderPage({

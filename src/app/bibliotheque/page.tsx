@@ -87,3 +87,8 @@ export default async function LibraryPage() {
     </main>
   );
 }
+import type { Metadata } from "next";
+export const metadata: Metadata = {
+  title: "Ma bibliothèque",
+  robots: { index: false, follow: false },
+};

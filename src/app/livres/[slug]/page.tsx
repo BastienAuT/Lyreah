@@ -8,13 +8,20 @@ import { formatBookLanguage } from "@/catalog/languages";
 import { BookCover } from "@/components/catalog/book-cover";
 import { addBookToLibrary, removeBookFromLibrary } from "@/library/actions";
 import { getLibraryEntry } from "@/library/queries";
+import { createPublicPageMetadata } from "@/site/metadata";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const book = await getCatalogBookBySlug(slug);
-  return book ? { title: `${book.title} — Lyreah`, description: book.synopsis } : {};
+  return book
+    ? createPublicPageMetadata({
+        title: book.title,
+        description: book.synopsis,
+        path: `/livres/${book.slug}`,
+      })
+    : {};
 }
 
 export default async function BookPage({ params }: { params: Promise<{ slug: string }> }) {

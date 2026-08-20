@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Vercel performs its own function tracing; standalone output is for Docker.
+  ...(process.env.VERCEL ? {} : { output: "standalone" as const }),
+  poweredByHeader: false,
   async headers() {
     return [
       {
@@ -12,8 +14,16 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           {
             key: "Permissions-Policy",
-            value: "camera=(), geolocation=(), microphone=()",
+            value: "browsing-topics=(), camera=(), geolocation=(), microphone=()",
           },
+          ...(process.env.NODE_ENV === "production"
+            ? [
+                {
+                  key: "Strict-Transport-Security",
+                  value: "max-age=31536000",
+                },
+              ]
+            : []),
         ],
       },
     ];

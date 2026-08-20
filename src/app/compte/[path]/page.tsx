@@ -1,4 +1,5 @@
 import { accountViewPaths } from "@neondatabase/auth-ui/server";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ensureCurrentProfile } from "@/auth/session";
 import { ReaderPreferencesCard } from "@/components/account/reader-preferences-card";
@@ -7,9 +8,13 @@ import { parseReaderPreferences } from "@/reader/preferences";
 
 export const dynamic = "force-dynamic";
 export const dynamicParams = false;
+const enabledAccountPaths = [
+  accountViewPaths.SETTINGS,
+  accountViewPaths.SECURITY,
+];
 
 export function generateStaticParams() {
-  return Object.values(accountViewPaths).map((path) => ({ path }));
+  return enabledAccountPaths.map((path) => ({ path }));
 }
 
 export default async function AccountPage({
@@ -52,3 +57,7 @@ export default async function AccountPage({
     </main>
   );
 }
+export const metadata: Metadata = {
+  title: "Mon compte",
+  robots: { index: false, follow: false },
+};

@@ -1,7 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { getCatalogBooks, getCatalogCategories } from "@/catalog/queries";
 import { BookCard } from "@/components/catalog/book-card";
+import { createPublicPageMetadata } from "@/site/metadata";
+
+export const metadata: Metadata = createPublicPageMetadata({
+  title: "Catalogue",
+  description:
+    "Découvrez les classiques français disponibles dans la liseuse immersive Lyreah.",
+  path: "/catalogue",
+});
 
 type CatalogSearchParams = Promise<{
   q?: string | string[];

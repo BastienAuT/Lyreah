@@ -3,6 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { catalogCoverPaths } from "@/catalog/cover-assets";
 import { ReaderPreviewCarousel } from "@/components/home/reader-preview-carousel";
+import { SiteFooter } from "@/components/site/site-footer";
 import { getCurrentUser } from "@/auth/session";
 
 const books = [
@@ -44,7 +45,8 @@ export default async function Home() {
   const accountLabel = user?.name?.trim() || "Mon profil";
 
   return (
-    <main>
+    <>
+      <main>
       <section className="hero-shell">
         <header className="site-header" aria-label="Navigation principale">
           <a className="brand" href="#top" aria-label="Lyreah, accueil">
@@ -210,6 +212,8 @@ export default async function Home() {
         </div>
       </section>
 
-    </main>
+      </main>
+      <SiteFooter />
+    </>
   );
 }

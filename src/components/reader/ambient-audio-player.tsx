@@ -7,6 +7,11 @@ import {
   DEFAULT_EFFECTS_INTENSITY,
   parseAudioPreferences,
 } from "@/audio/preferences";
+import {
+  getSignedAudioUrlExpiry,
+  SIGNED_AUDIO_URL_REFRESH_LEEWAY_MS,
+  shouldRefreshSignedAudioUrl,
+} from "@/audio/signed-url-refresh";
 import type { VisualEffect } from "@/audio/effects";
 
 type SoundscapeLayer = {
@@ -29,8 +34,14 @@ type Soundscape = {
 };
 type SoundscapeResponse = {
   defaultSoundscapeId: string | null;
+  expiresIn?: number;
   soundscape: Soundscape | null;
   soundscapes?: Soundscape[];
+};
+
+type FreshSoundscapes = {
+  expiresAt: number;
+  soundscapes: Soundscape[];
 };
 
 type LoopSlot = 0 | 1;
@@ -64,6 +75,69 @@ const continuousAudioKey = (
   slot: LoopSlot,
 ) => `${audioKey(soundscapeId, layerId)}:loop-${slot}`;
 
+function getAvailableSoundscapes(data: SoundscapeResponse) {
+  return data.soundscapes ?? (data.soundscape ? [data.soundscape] : []);
+}
+
+async function requestSoundscapes(bookId: string, signal?: AbortSignal) {
+  const response = await fetch(`/api/reader/books/${bookId}/soundscape`, {
+    cache: "no-store",
+    signal,
+  });
+
+  if (!response.ok) throw new Error("The soundscape could not be loaded");
+
+  const data = (await response.json()) as SoundscapeResponse;
+  return {
+    data,
+    expiresAt: getSignedAudioUrlExpiry(data.expiresIn),
+    soundscapes: getAvailableSoundscapes(data),
+  };
+}
+
+function waitUntilAudioCanPlay(audio: HTMLAudioElement) {
+  if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      window.clearTimeout(timeout);
+      audio.removeEventListener("canplay", handleCanPlay);
+      audio.removeEventListener("error", handleError);
+    };
+    const handleCanPlay = () => {
+      cleanup();
+      resolve();
+    };
+    const handleError = () => {
+      cleanup();
+      reject(audio.error ?? new Error("Audio loading failed"));
+    };
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("Audio loading timed out"));
+    }, 7_000);
+
+    audio.addEventListener("canplay", handleCanPlay, { once: true });
+    audio.addEventListener("error", handleError, { once: true });
+    audio.preload = "auto";
+    audio.load();
+  });
+}
+
+async function playAudioReliably(audio: HTMLAudioElement) {
+  try {
+    await audio.play();
+  } catch (initialError) {
+    if (initialError instanceof DOMException && initialError.name === "NotAllowedError") {
+      throw initialError;
+    }
+    await waitUntilAudioCanPlay(audio);
+    await audio.play();
+  }
+}
+
 function AudioSource({
   audioId,
   preload,
@@ -71,7 +145,7 @@ function AudioSource({
   src,
 }: {
   audioId: string;
-  preload: "metadata" | "none";
+  preload: "auto" | "metadata" | "none";
   registerAudio: (key: string, audio: HTMLAudioElement | null) => void;
   src: string;
 }) {
@@ -93,10 +167,16 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
   const continuousLoopRefs = useRef(new Map<string, ContinuousLoopRuntime>());
   const loopGainRefs = useRef(new Map<string, number>());
   const soundscapeGainRefs = useRef(new Map<string, number>());
+  const audioSourceExpiryRefs = useRef(new Map<string, number>());
+  const latestSoundscapesRef = useRef<Soundscape[]>([]);
+  const latestSignedUrlsExpireAtRef = useRef(0);
+  const refreshSoundscapesPromiseRef = useRef<Promise<FreshSoundscapes> | null>(null);
+  const requestControllerRef = useRef<AbortController | null>(null);
   const transitionIdRef = useRef(0);
   const isTransitioningRef = useRef(false);
   const preferencesLoadedRef = useRef(false);
   const [soundscapes, setSoundscapes] = useState<Soundscape[]>([]);
+  const [signedUrlsExpireAt, setSignedUrlsExpireAt] = useState(0);
   const [selectedSoundscapeId, setSelectedSoundscapeId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -114,6 +194,108 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
       soundscapes[0] ??
       null,
     [selectedSoundscapeId, soundscapes],
+  );
+
+  const refreshSoundscapes = useCallback(
+    async (force = false): Promise<FreshSoundscapes> => {
+      if (
+        !force &&
+        !shouldRefreshSignedAudioUrl(latestSignedUrlsExpireAtRef.current)
+      ) {
+        return {
+          expiresAt: latestSignedUrlsExpireAtRef.current,
+          soundscapes: latestSoundscapesRef.current,
+        };
+      }
+
+      const inFlight = refreshSoundscapesPromiseRef.current;
+      if (inFlight) return inFlight;
+
+      const request = requestSoundscapes(
+        bookId,
+        requestControllerRef.current?.signal,
+      ).then(({ expiresAt, soundscapes: refreshedSoundscapes }) => {
+        latestSoundscapesRef.current = refreshedSoundscapes;
+        latestSignedUrlsExpireAtRef.current = expiresAt;
+        setSignedUrlsExpireAt(expiresAt);
+        return { expiresAt, soundscapes: refreshedSoundscapes };
+      });
+      refreshSoundscapesPromiseRef.current = request;
+
+      try {
+        return await request;
+      } finally {
+        if (refreshSoundscapesPromiseRef.current === request) {
+          refreshSoundscapesPromiseRef.current = null;
+        }
+      }
+    },
+    [bookId],
+  );
+
+  const refreshAudioSource = useCallback(
+    async (
+      soundscapeId: string,
+      layerId: string,
+      key: string,
+      audio: HTMLAudioElement,
+      force = false,
+    ) => {
+      const currentExpiry = audioSourceExpiryRefs.current.get(key);
+      if (!force && !shouldRefreshSignedAudioUrl(currentExpiry)) return;
+
+      // Replacing src reloads an HTMLAudioElement. Never do it while that slot is audible.
+      if (!audio.paused && !audio.ended) return;
+
+      let freshSoundscapes: FreshSoundscapes;
+      try {
+        freshSoundscapes = await refreshSoundscapes(force);
+      } catch (refreshError) {
+        if (!force && currentExpiry !== undefined && currentExpiry > Date.now()) {
+          return;
+        }
+        throw refreshError;
+      }
+
+      if (!audio.paused && !audio.ended) return;
+
+      const refreshedLayer = freshSoundscapes.soundscapes
+        .find((soundscape) => soundscape.id === soundscapeId)
+        ?.layers.find((layer) => layer.id === layerId);
+      if (!refreshedLayer) {
+        throw new Error("The requested soundscape layer is no longer available");
+      }
+
+      if (audio.getAttribute("src") !== refreshedLayer.url) {
+        audio.src = refreshedLayer.url;
+        audio.preload = "auto";
+        audio.load();
+      }
+      audioSourceExpiryRefs.current.set(key, freshSoundscapes.expiresAt);
+    },
+    [refreshSoundscapes],
+  );
+
+  const playAudioWithFreshSource = useCallback(
+    async (
+      soundscape: Soundscape,
+      layer: SoundscapeLayer,
+      key: string,
+      audio: HTMLAudioElement,
+    ) => {
+      await refreshAudioSource(soundscape.id, layer.id, key, audio);
+
+      try {
+        await playAudioReliably(audio);
+      } catch (playError) {
+        if (playError instanceof DOMException && playError.name === "NotAllowedError") {
+          throw playError;
+        }
+        await refreshAudioSource(soundscape.id, layer.id, key, audio, true);
+        await playAudioReliably(audio);
+      }
+    },
+    [refreshAudioSource],
   );
 
   const applyAudioVolume = useCallback(
@@ -161,6 +343,31 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
     [applyAudioVolume],
   );
 
+  const prepareSoundscapeSources = useCallback(
+    async (soundscape: Soundscape) => {
+      await Promise.all(
+        soundscape.layers.flatMap((layer) => {
+          if (layer.intervalSeconds) {
+            const key = audioKey(soundscape.id, layer.id);
+            const audio = audioRefs.current.get(key);
+            return audio
+              ? [refreshAudioSource(soundscape.id, layer.id, key, audio)]
+              : [];
+          }
+
+          return ([0, 1] as const).flatMap((slot) => {
+            const key = continuousAudioKey(soundscape.id, layer.id, slot);
+            const audio = audioRefs.current.get(key);
+            return audio
+              ? [refreshAudioSource(soundscape.id, layer.id, key, audio)]
+              : [];
+          });
+        }),
+      );
+    },
+    [refreshAudioSource],
+  );
+
   const ensureContinuousLoop = useCallback(
     (soundscape: Soundscape, layer: SoundscapeLayer) => {
       const key = audioKey(soundscape.id, layer.id);
@@ -195,6 +402,12 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
         setLoopGain(soundscape, layer, transition.to, 1);
         runtime.activeSlot = transition.to;
         runtime.transition = null;
+        void refreshAudioSource(
+          soundscape.id,
+          layer.id,
+          continuousAudioKey(soundscape.id, layer.id, transition.from),
+          previous,
+        ).catch(() => undefined);
       };
 
       const resumeFade = () => {
@@ -242,8 +455,12 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
         };
         nextAudio.currentTime = 0;
         setLoopGain(soundscape, layer, to, 0);
-        void nextAudio
-          .play()
+        void playAudioWithFreshSource(
+          soundscape,
+          layer,
+          continuousAudioKey(soundscape.id, layer.id, to),
+          nextAudio,
+        )
           .then(() => {
             if (runtime.paused || runtime.disposed) {
               nextAudio.pause();
@@ -260,8 +477,12 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
             setLoopGain(soundscape, layer, from, 1);
             const activeAudio = runtime.audios[from];
             activeAudio.currentTime = 0;
-            void activeAudio
-              .play()
+            void playAudioWithFreshSource(
+              soundscape,
+              layer,
+              continuousAudioKey(soundscape.id, layer.id, from),
+              activeAudio,
+            )
               .catch(() => setError("Une boucle audio n’a pas pu être enchaînée"));
           });
       };
@@ -290,7 +511,14 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
           return;
         }
         activeAudio.currentTime = 0;
-        void activeAudio.play().catch(() => setError("Lecture audio impossible"));
+        void playAudioWithFreshSource(
+          soundscape,
+          layer,
+          continuousAudioKey(soundscape.id, layer.id, runtime.activeSlot),
+          activeAudio,
+        ).catch(() =>
+          setError("Lecture audio impossible"),
+        );
       };
 
       runtime.audios.forEach((audio) => {
@@ -306,13 +534,28 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
         const transition = runtime.transition;
         if (transition) {
           await Promise.all([
-            runtime.audios[transition.from].play(),
-            runtime.audios[transition.to].play(),
+            playAudioWithFreshSource(
+              soundscape,
+              layer,
+              continuousAudioKey(soundscape.id, layer.id, transition.from),
+              runtime.audios[transition.from],
+            ),
+            playAudioWithFreshSource(
+              soundscape,
+              layer,
+              continuousAudioKey(soundscape.id, layer.id, transition.to),
+              runtime.audios[transition.to],
+            ),
           ]);
           resumeFade();
           return;
         }
-        await runtime.audios[runtime.activeSlot].play();
+        await playAudioWithFreshSource(
+          soundscape,
+          layer,
+          continuousAudioKey(soundscape.id, layer.id, runtime.activeSlot),
+          runtime.audios[runtime.activeSlot],
+        );
       };
 
       runtime.pause = () => {
@@ -348,18 +591,25 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
       continuousLoopRefs.current.set(key, runtime);
       return runtime;
     },
-    [setLoopGain],
+    [playAudioWithFreshSource, refreshAudioSource, setLoopGain],
   );
 
   const playContinuousLayers = useCallback(
     async (soundscape: Soundscape) => {
+      await prepareSoundscapeSources(soundscape);
       const runtimes = soundscape.layers
         .filter((layer) => !layer.intervalSeconds)
         .map((layer) => ensureContinuousLoop(soundscape, layer))
         .filter((runtime): runtime is ContinuousLoopRuntime => Boolean(runtime));
+      runtimes.forEach((runtime) => {
+        runtime.audios.forEach((audio) => {
+          audio.preload = "auto";
+          if (audio.networkState === HTMLMediaElement.NETWORK_EMPTY) audio.load();
+        });
+      });
       await Promise.all(runtimes.map((runtime) => runtime.play()));
     },
-    [ensureContinuousLoop],
+    [ensureContinuousLoop, prepareSoundscapeSources],
   );
 
   const pauseContinuousLayers = useCallback((soundscape: Soundscape) => {
@@ -375,8 +625,17 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
   }, []);
 
   const registerAudio = useCallback((key: string, audio: HTMLAudioElement | null) => {
-    if (audio) audioRefs.current.set(key, audio);
-    else audioRefs.current.delete(key);
+    if (audio) {
+      audioRefs.current.set(key, audio);
+      if (!audioSourceExpiryRefs.current.has(key)) {
+        audioSourceExpiryRefs.current.set(
+          key,
+          latestSignedUrlsExpireAtRef.current,
+        );
+      }
+    } else {
+      audioRefs.current.delete(key);
+    }
   }, []);
 
   useEffect(() => {
@@ -386,26 +645,28 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
   useEffect(() => {
     const controller = new AbortController();
     const audioElements = audioRefs.current;
+    const audioSourceExpiries = audioSourceExpiryRefs.current;
     const continuousLoops = continuousLoopRefs.current;
+    requestControllerRef.current = controller;
+    refreshSoundscapesPromiseRef.current = null;
+    latestSoundscapesRef.current = [];
+    latestSignedUrlsExpireAtRef.current = 0;
+    audioSourceExpiries.clear();
 
     async function loadSoundscapes() {
       try {
         const storedPreferences = parseAudioPreferences(
           window.localStorage.getItem(audioPreferencesStorageKey(bookId)),
         );
-        const response = await fetch(`/api/reader/books/${bookId}/soundscape`, {
-          cache: "no-store",
-          signal: controller.signal,
-        });
-
-        if (!response.ok) throw new Error("L’ambiance n’a pas pu être chargée.");
-
-        const data = (await response.json()) as SoundscapeResponse;
-        const available = data.soundscapes ?? (data.soundscape ? [data.soundscape] : []);
+        const { data, expiresAt, soundscapes: available } =
+          await requestSoundscapes(bookId, controller.signal);
         const storedExists = available.some(
           (soundscape) => soundscape.id === storedPreferences.soundscapeId,
         );
 
+        latestSoundscapesRef.current = available;
+        latestSignedUrlsExpireAtRef.current = expiresAt;
+        setSignedUrlsExpireAt(expiresAt);
         preferencesLoadedRef.current = true;
         setVolume(storedPreferences.volume);
         setEffectsIntensity(storedPreferences.effectsIntensity);
@@ -425,9 +686,14 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
     loadSoundscapes();
     return () => {
       controller.abort();
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = null;
+      }
+      refreshSoundscapesPromiseRef.current = null;
       transitionIdRef.current += 1;
       continuousLoops.forEach((runtime) => runtime.dispose());
       audioElements.forEach((audio) => audio.pause());
+      audioSourceExpiries.clear();
     };
   }, [bookId]);
 
@@ -482,7 +748,12 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
 
         const playOneShot = () => {
           audio.currentTime = 0;
-          void audio.play().catch(() => setError("Un son ponctuel n’a pas pu être lu"));
+          void playAudioWithFreshSource(
+            activeSoundscape,
+            layer,
+            audioKey(activeSoundscape.id, layer.id),
+            audio,
+          ).catch(() => setError("Un son ponctuel n’a pas pu être lu"));
           timer = window.setTimeout(playOneShot, layer.intervalSeconds! * 1_000);
         };
 
@@ -503,7 +774,51 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
         audio.currentTime = 0;
       });
     };
-  }, [activeSoundscape, isPlaying]);
+  }, [activeSoundscape, isPlaying, playAudioWithFreshSource]);
+
+  useEffect(() => {
+    if (!activeSoundscape || !signedUrlsExpireAt) return;
+
+    const delay = Math.max(
+      0,
+      signedUrlsExpireAt -
+        Date.now() -
+        SIGNED_AUDIO_URL_REFRESH_LEEWAY_MS,
+    );
+    const timer = window.setTimeout(() => {
+      void refreshSoundscapes()
+        .then(() => prepareSoundscapeSources(activeSoundscape))
+        .catch(() => undefined);
+    }, delay);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    activeSoundscape,
+    bookId,
+    prepareSoundscapeSources,
+    refreshSoundscapes,
+    signedUrlsExpireAt,
+  ]);
+
+  useEffect(() => {
+    if (!activeSoundscape) return;
+
+    const refreshWhenForegrounded = () => {
+      if (document.visibilityState !== "visible") return;
+      void refreshSoundscapes()
+        .then(() => prepareSoundscapeSources(activeSoundscape))
+        .catch(() => undefined);
+    };
+
+    document.addEventListener("visibilitychange", refreshWhenForegrounded);
+    window.addEventListener("focus", refreshWhenForegrounded);
+    window.addEventListener("pageshow", refreshWhenForegrounded);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshWhenForegrounded);
+      window.removeEventListener("focus", refreshWhenForegrounded);
+      window.removeEventListener("pageshow", refreshWhenForegrounded);
+    };
+  }, [activeSoundscape, prepareSoundscapeSources, refreshSoundscapes]);
 
   useEffect(() => {
     if (!isExpanded) return;
@@ -663,7 +978,7 @@ export function AmbientAudioPlayer({ bookId }: { bookId: string }) {
                 key={key}
                 preload={
                   soundscape.id === activeSoundscape.id && slot === 0
-                    ? "metadata"
+                    ? "auto"
                     : "none"
                 }
                 registerAudio={registerAudio}

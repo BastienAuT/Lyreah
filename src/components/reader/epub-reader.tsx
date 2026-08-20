@@ -27,6 +27,8 @@ type SavedProgress = {
 };
 type ProgressResponse = { progress: SavedProgress | null };
 
+const BOOK_PAGE_CHARACTER_COUNT = 1_600;
+
 function applyReaderDocumentTheme(
   document: Document,
   preferences: ReaderPreferences,
@@ -249,6 +251,15 @@ export function EpubReader({
       if (latestPosition) void savePosition(latestPosition, true);
     }
 
+    function updateBookPagination(book: Book, cfi: string) {
+      const totalPages = book.locations.length();
+      const locationIndex = book.locations.locationFromCfi(cfi) as unknown as number;
+
+      if (totalPages < 1 || locationIndex < 0) return;
+      const currentPage = Math.min(totalPages, locationIndex + 1);
+      setPageLabel(`Page ${currentPage} / ${totalPages}`);
+    }
+
     async function openBook() {
       if (!viewer) return;
 
@@ -329,6 +340,10 @@ export function EpubReader({
         });
         rendition.hooks.content.register((contents: Contents) => {
           applyReaderDocumentTheme(contents.document, preferencesRef.current);
+          contents.window.frameElement?.setAttribute(
+            "title",
+            `Contenu du livre « ${title} »`,
+          );
           contents.document.addEventListener("keydown", (event) => {
             if (isEditableTarget(event.target)) return;
             if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
@@ -345,29 +360,14 @@ export function EpubReader({
           currentCfiRef.current = location.start.cfi;
 
           const current = book.navigation.get(location.start.href);
-          const displayedStart = location.start.displayed;
           const displayedEnd = location.end.displayed;
-          const isTwoPageSpread =
-            location.start.href === location.end.href &&
-            displayedEnd.page > displayedStart.page;
-          const isWholeChapter =
-            displayedStart.page === 1 &&
-            displayedEnd.page === displayedEnd.total;
           const spineLength = book.spine.last().index + 1;
           const sectionProgress = displayedEnd.total
             ? displayedEnd.page / displayedEnd.total
             : 0;
 
           setChapter(current?.label?.trim() || "Lecture");
-          setPageLabel(
-            displayedStart.total
-              ? isWholeChapter
-                ? "Chapitre entier"
-                : isTwoPageSpread
-                ? `Pages ${displayedStart.page}–${displayedEnd.page} sur ${displayedEnd.total}`
-                : `Page ${displayedStart.page} sur ${displayedStart.total}`
-              : "",
-          );
+          updateBookPagination(book, location.start.cfi);
           const percentage = spineLength
             ? Math.min(
                 100,
@@ -380,7 +380,12 @@ export function EpubReader({
           setAtEnd(location.atEnd);
           setError("");
           viewer.classList.remove("is-page-entering");
-          if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          if (
+            !window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
+            !window.matchMedia(
+              "(max-width: 680px), (min-width: 681px) and (max-width: 1024px) and (orientation: portrait)",
+            ).matches
+          ) {
             void viewer.offsetWidth;
             viewer.classList.add("is-page-entering");
           }
@@ -402,6 +407,15 @@ export function EpubReader({
 
         if (!disposed) {
           setStatus("ready");
+          void book.locations
+            .generate(BOOK_PAGE_CHARACTER_COUNT)
+            .then(() => {
+              const currentCfi = currentCfiRef.current;
+              if (!disposed && currentCfi) updateBookPagination(book, currentCfi);
+            })
+            .catch(() => {
+              // Reading remains available if an EPUB cannot be globally paginated.
+            });
         }
       } catch (readerError) {
         if (!disposed) {
@@ -435,7 +449,7 @@ export function EpubReader({
       lastTypographyRef.current = null;
       viewer?.replaceChildren();
     };
-  }, [bookId, move]);
+  }, [bookId, move, title]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -465,7 +479,7 @@ export function EpubReader({
       data-reader-theme={preferences.theme}
     >
       <header className="epub-reader__header">
-        <span className="epub-reader__page">{pageLabel || "Lecture"}</span>
+        <span className="epub-reader__page">Lecture</span>
         <span className="epub-reader__chapter">{chapter}</span>
         <div className="epub-reader__tools">
           <ReaderAppearancePanel
@@ -518,10 +532,10 @@ export function EpubReader({
         </div>
         <div
           className="epub-reader__progress-wrap"
-          data-progress-label={`${chapter} · ${Math.round(progress)} %`}
-          title={`${chapter} · ${Math.round(progress)} %`}
+          title={pageLabel || "Pagination en cours"}
         >
-          <span>
+          <span aria-live="polite">{pageLabel || "Pagination…"}</span>
+          <span className="epub-reader__save-status">
             Progression du livre {Math.round(progress)} %
             {saveStatus === "saving" ? " · sauvegarde…" : ""}
             {saveStatus === "saved" ? " · enregistrée" : ""}
