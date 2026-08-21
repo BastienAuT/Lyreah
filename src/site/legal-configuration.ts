@@ -14,6 +14,7 @@ export type LegalConfiguration = {
   hostIdentityConfirmed: boolean;
   hostName: string | null;
   hostAddress: string | null;
+  hostPhone: string | null;
   hostContact: string | null;
 };
 
@@ -38,6 +39,7 @@ export function isLegalConfigurationComplete(
       configuration.contactEmail &&
       configuration.hostName &&
       configuration.hostAddress &&
+      configuration.hostPhone &&
       configuration.hostContact,
   );
 

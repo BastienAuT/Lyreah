@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getLegalConfiguration } from "@/site/config";
 import {
   isLegalConfigurationComplete,
@@ -17,6 +18,34 @@ function PendingValue({ children }: { children: string }) {
   return <span className={styles.pending}>{children}</span>;
 }
 
+function parseHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+
+    if (url.protocol === "https:" || url.protocol === "http:") {
+      return url;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function ExternalContact({ value }: { value: string }) {
+  const url = parseHttpUrl(value);
+
+  if (url) {
+    return (
+      <a href={url.href} rel="noreferrer">
+        {url.hostname}
+      </a>
+    );
+  }
+
+  return <>{value}</>;
+}
+
 export default function LegalNoticesPage() {
   const legal = getLegalConfiguration();
   const isNonProfessionalIndividual =
@@ -32,7 +61,7 @@ export default function LegalNoticesPage() {
           Les informations ci-dessous identifient les responsables de Lyreah et
           précisent les principales conditions d’utilisation du site.
         </p>
-        <p className={styles.updated}>Dernière mise à jour : 20 août 2026.</p>
+        <p className={styles.updated}>Dernière mise à jour : 21 août 2026.</p>
         {isIncomplete ? (
           <p className={styles.notice} role="status">
             Version de développement : la configuration légale doit encore être
@@ -47,6 +76,8 @@ export default function LegalNoticesPage() {
           <li><a href="#hebergement">Hébergement</a></li>
           <li><a href="#propriete">Propriété intellectuelle</a></li>
           <li><a href="#responsabilite">Responsabilité</a></li>
+          <li><a href="#donnees">Données personnelles</a></li>
+          <li><a href="#droit-applicable">Droit applicable</a></li>
           <li><a href="#contact">Contact</a></li>
         </ul>
       </nav>
@@ -115,28 +146,84 @@ export default function LegalNoticesPage() {
           <strong>Adresse :</strong>{" "}
           {legal.hostAddress ?? <PendingValue>adresse à renseigner</PendingValue>}
           <br />
-          <strong>Contact :</strong>{" "}
-          {legal.hostContact ?? <PendingValue>coordonnées à renseigner</PendingValue>}
+          <strong>Téléphone :</strong>{" "}
+          {legal.hostPhone ? (
+            <a href={`tel:${legal.hostPhone.replace(/[^\d+]/g, "")}`}>
+              {legal.hostPhone}
+            </a>
+          ) : (
+            <PendingValue>numéro de téléphone à renseigner</PendingValue>
+          )}
+          <br />
+          <strong>Site et assistance :</strong>{" "}
+          {legal.hostContact ? (
+            <ExternalContact value={legal.hostContact} />
+          ) : (
+            <PendingValue>coordonnées à renseigner</PendingValue>
+          )}
         </address>
       </section>
 
       <section className={styles.section} id="propriete">
         <h2>Propriété intellectuelle</h2>
         <p>
-          La marque, l’interface, les textes éditoriaux et les créations visuelles
-          propres à Lyreah ne peuvent pas être réutilisés sans autorisation. Les
-          livres proposés sont issus du domaine public ou d’une licence compatible ;
-          leur source et leurs droits sont indiqués sur chaque fiche.
+          La structure du site, la marque Lyreah, son interface, ses textes
+          éditoriaux et ses créations visuelles sont protégés par le droit de la
+          propriété intellectuelle. Sauf exception prévue par la loi ou autorisation
+          écrite préalable, toute reproduction, adaptation ou diffusion, même
+          partielle, est interdite.
+        </p>
+        <p>
+          Les livres proposés sont issus du domaine public ou diffusés sous une
+          licence compatible. Leur source, leurs crédits et les droits applicables
+          sont indiqués sur chaque fiche. Les marques et contenus appartenant à des
+          tiers restent la propriété de leurs titulaires respectifs.
         </p>
       </section>
 
       <section className={styles.section} id="responsabilite">
         <h2>Responsabilité</h2>
         <p>
-          Lyreah veille à fournir des informations exactes et un service disponible,
-          sans pouvoir garantir l’absence permanente d’erreur ou d’interruption. Les
-          liens vers des services tiers sont fournis à titre informatif ; leurs
-          contenus et leurs pratiques restent sous la responsabilité de leurs éditeurs.
+          Lyreah s’efforce de fournir des informations exactes, à jour et un service
+          accessible. Le site peut néanmoins être interrompu pour maintenance,
+          incident technique ou cas de force majeure. L’éditeur ne peut garantir
+          l’absence permanente d’erreur, ni être tenu responsable d’un dommage
+          résultant d’un usage contraire à la destination du service, dans les limites
+          permises par la loi.
+        </p>
+        <p>
+          Les liens externes sont proposés à titre informatif. Lyreah ne contrôle ni
+          la disponibilité, ni les contenus, ni les pratiques des sites tiers, qui
+          restent sous la responsabilité de leurs éditeurs. La création d’un lien
+          simple vers Lyreah est autorisée sous réserve de ne pas créer de confusion
+          sur l’origine du contenu ni d’intégrer une page du site dans un cadre tiers.
+        </p>
+      </section>
+
+      <section className={styles.section} id="donnees">
+        <h2>Données personnelles et traceurs</h2>
+        <p>
+          Les traitements liés au compte, à la bibliothèque et à la progression de
+          lecture, ainsi que les modalités d’exercice de vos droits, sont décrits dans
+          la <Link href="/politique-de-confidentialite">politique de confidentialité</Link>.
+          Lyreah utilise uniquement les cookies et stockages locaux nécessaires à
+          l’authentification, à la sécurité et aux préférences de lecture ; aucun
+          traceur publicitaire n’est déposé.
+        </p>
+      </section>
+
+      <section className={styles.section} id="droit-applicable">
+        <h2>Droit applicable et droit de réponse</h2>
+        <p>
+          Le site et les présentes mentions sont soumis au droit français. Tout
+          différend relève des juridictions compétentes selon les règles de droit
+          commun, après recherche, lorsque cela est possible, d’une solution amiable.
+        </p>
+        <p>
+          Toute personne nommée ou désignée sur le site dispose d’un droit de réponse
+          dans les conditions prévues par l’article 1-1 de la loi du 21 juin 2004 pour
+          la confiance dans l’économie numérique. La demande peut être adressée au
+          contact ci-dessous ou, lorsque l’éditeur conserve l’anonymat, à l’hébergeur.
         </p>
       </section>
 

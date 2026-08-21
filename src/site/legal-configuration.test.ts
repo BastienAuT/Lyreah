@@ -12,6 +12,7 @@ const completeSharedConfiguration = {
   hostIdentityConfirmed: true,
   hostName: "Hébergeur",
   hostAddress: "Adresse de l’hébergeur",
+  hostPhone: "+33 1 23 45 67 89",
   hostContact: "https://example.com/contact",
 } satisfies Omit<LegalConfiguration, "publisherStatus">;
 
@@ -58,5 +59,15 @@ describe("legal configuration", () => {
         publisherAddress: "1 rue de l’Exemple, Paris",
       }),
     ).toBe(true);
+  });
+
+  test("requires the host phone number", () => {
+    expect(
+      isLegalConfigurationComplete({
+        ...completeSharedConfiguration,
+        publisherStatus: "individual-non-professional",
+        hostPhone: null,
+      }),
+    ).toBe(false);
   });
 });

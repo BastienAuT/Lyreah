@@ -47,6 +47,7 @@ export function getLegalConfiguration(): LegalConfiguration {
       "true",
     hostName: getOptionalPublicValue("NEXT_PUBLIC_LEGAL_HOST_NAME"),
     hostAddress: getOptionalPublicValue("NEXT_PUBLIC_LEGAL_HOST_ADDRESS"),
+    hostPhone: getOptionalPublicValue("NEXT_PUBLIC_LEGAL_HOST_PHONE"),
     hostContact: getOptionalPublicValue("NEXT_PUBLIC_LEGAL_HOST_CONTACT"),
   };
 }
