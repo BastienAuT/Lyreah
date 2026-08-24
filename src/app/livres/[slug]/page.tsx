@@ -47,7 +47,13 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
       </nav>
       <Link className="book-detail-back" href="/catalogue">← Retour au catalogue</Link>
       <article className="book-detail">
-        <BookCover title={book.title} author={author} slug={book.slug} size="detail" />
+        <BookCover
+          title={book.title}
+          author={author}
+          slug={book.slug}
+          size="detail"
+          eager
+        />
         <div className="book-detail__copy">
           <p className="eyebrow">{book.categories.map((category) => category.name).join(" · ")}</p>
           <h1>{book.title}</h1>

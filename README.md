@@ -1,94 +1,135 @@
 # Lyreah
 
-Application de lecture EPUB avec progression synchronisée et ambiances sonores.
+![Aperçu de Lyreah, liseuse EPUB immersive](docs/assets/lyreah-portfolio-cover.png)
 
-## Stack
+> Une bibliothèque de classiques francophones où la lecture EPUB rencontre des
+> ambiances sonores et visuelles entièrement optionnelles.
 
-- Next.js, React, TypeScript et Tailwind CSS
-- Bun pour les dépendances et les scripts
-- Neon PostgreSQL pour les données
-- Neon Auth pour les comptes et les sessions
-- Supabase Storage pour les fichiers privés
+[![CI](https://github.com/BastienAuT/Lyreah/actions/workflows/ci.yml/badge.svg)](https://github.com/BastienAuT/Lyreah/actions/workflows/ci.yml)
 
-## Développement local
+Lyreah est une application web de lecture pensée comme un produit complet :
+catalogue éditorialisé, liseuse responsive, progression synchronisée, réglages
+d’accessibilité, bibliothèque personnelle et back-office de publication.
 
-Copier `.env.example` vers `.env.local`, puis renseigner les variables locales. Ne
-jamais exposer `SUPABASE_SERVICE_ROLE_KEY` dans une variable `NEXT_PUBLIC_*`.
+Le projet réunit actuellement **13 classiques en français** et propose jusqu’à
+**11 ambiances** par lecture. Les œuvres, traductions, couvertures et pistes audio
+conservent leurs informations de provenance et de licence.
+
+## Ce que le projet démontre
+
+- une expérience de lecture EPUB paginée sur ordinateur, mobile et tablette ;
+- la reprise exacte grâce aux positions CFI synchronisées en base ;
+- des thèmes papier, sépia et nuit, ainsi que le réglage de la police, de la
+  taille, de l’interlignage et de la texture ;
+- des paysages sonores multicouches avec volume, pause automatique et effets
+  visuels facultatifs ;
+- un catalogue filtrable, une bibliothèque personnelle et une authentification
+  par compte ;
+- un back-office sécurisé pour importer, contrôler et publier les EPUB et leurs
+  ambiances ;
+- une chaîne de traitement qui refuse les archives dangereuses, surdimensionnées
+  ou faussement déclarées en français ;
+- des métadonnées SEO, images sociales, pages légales, sitemap, robots.txt et
+  sondes de santé prêts pour une mise en production.
+
+## Architecture
+
+```text
+Navigateur
+   │
+   ├── Next.js App Router ── Neon Auth
+   │          │
+   │          ├── Drizzle ORM ── Neon PostgreSQL
+   │          │
+   │          └── API serveur ── Supabase Storage privé
+   │                                  ├── EPUB maîtres
+   │                                  ├── renditions contrôlées
+   │                                  ├── couvertures
+   │                                  └── ambiances audio
+   │
+   └── epub.js ── lecture, pagination et progression CFI
+```
+
+Les fichiers ne sont jamais rendus publics directement. Le serveur vérifie la
+session et l’état de publication avant d’émettre des URL signées de courte durée.
+La clé Supabase `service_role` reste exclusivement côté serveur.
+
+## Stack technique
+
+| Couche | Technologies |
+|---|---|
+| Interface | Next.js 16, React 19, TypeScript, CSS Modules et CSS natif |
+| Lecture | epub.js, préférences locales et progression CFI synchronisée |
+| Données | Neon PostgreSQL, Drizzle ORM et migrations versionnées |
+| Authentification | Neon Auth |
+| Fichiers | Supabase Storage privé et URL signées |
+| Qualité | Bun Test, ESLint, TypeScript, Playwright et axe-core |
+| Livraison | GitHub Actions, Vercel ou image Docker standalone |
+
+## Sécurité et qualité éditoriale
+
+L’import EPUB applique plusieurs barrières avant publication : validation du
+format, contrôle des chemins, CRC, plafond de 2 000 fichiers, limites de taille
+compressée et extraite, vérification de la structure EPUB et validation réelle
+de la langue française. Le contenu scripté reste désactivé dans la liseuse.
+
+Les routes d’administration revérifient systématiquement la session et le rôle
+`admin`. Le bucket de stockage est privé et séparé par environnement. Les réponses
+contenant des URL signées ou des données personnelles utilisent `private,
+no-store`.
+
+Le détail de la provenance des œuvres est disponible dans
+[docs/editorial-qa.md](docs/editorial-qa.md). Le bilan de préparation portfolio se
+trouve dans [docs/audit-portfolio-2026-08-24.md](docs/audit-portfolio-2026-08-24.md).
+
+## Démarrage local
+
+Prérequis : [Bun 1.3+](https://bun.sh/), une base Neon et un projet Supabase.
 
 ```bash
+git clone git@github.com:BastienAuT/Lyreah.git
+cd Lyreah
 bun install
+cp .env.example .env.local
+```
+
+Renseigner les variables de `.env.local`, puis préparer la base et le stockage :
+
+```bash
+bun run db:migrate
+bun run storage:setup
+bun run db:seed
+bun run services:check
 bun dev
 ```
 
-L'application est ensuite disponible sur <http://localhost:3000>.
+L’application est disponible sur <http://localhost:3000>.
 
-## Stockage Supabase
-
-Créer automatiquement le bucket **privé** configuré dans l'environnement :
+## Commandes utiles
 
 ```bash
-bun run storage:setup
+bun run test          # tests unitaires
+bun run lint          # règles ESLint et accessibilité statique
+bun run typecheck     # validation TypeScript
+bun run build         # build Next.js de production
+bun run test:e2e      # parcours Playwright desktop, mobile et tablette
+bun run catalog:audit # contrôle éditorial sans import
 ```
 
-Le bucket utilise les préfixes suivants :
+## Mise en production
 
-- `masters/` : fichiers EPUB originaux, réservés à l'administration ;
-- `renditions/` : contenu EPUB préparé pour le lecteur ;
-- `covers/` : couvertures optimisées ;
-- `audio/` : ambiances sonores.
+Le dépôt inclut une CI GitHub Actions, un `Dockerfile` multi-stage, une
+configuration Vercel Paris (`cdg1`), une sonde `/api/health` et un plan de
+sauvegarde/restauration. La procédure complète est documentée dans
+[docs/production-runbook.md](docs/production-runbook.md).
 
-Le navigateur ne reçoit jamais la clé `service_role`. Les accès de lecture seront
-accordés côté serveur avec des URL signées de courte durée.
+Avant l’ouverture publique, il reste à définir l’URL canonique de production,
+compléter les variables d’identité légale et rejouer la suite E2E authentifiée
+contre un environnement de staging dédié.
 
-Les imports administrateur utilisent également une URL signée : le navigateur
-emploie uniquement `NEXT_PUBLIC_SUPABASE_URL` et la clé publiable Supabase. Cette
-clé ne donne aucun accès privilégié au bucket privé ; le jeton temporaire est
-créé par l’API Lyreah après vérification du rôle administrateur.
+## Crédits
 
-`SUPABASE_STORAGE_PREFIX` sépare les objets d'environnement dans le même bucket :
-utiliser `dev` localement et `prod` en production.
-
-## Connexions externes
-
-Une fois les variables configurées, vérifier Neon et Supabase sans afficher de
-secret :
-
-```bash
-bun run services:check
-```
-
-## Administration
-
-Après une première connexion, promouvoir le profil de développement :
-
-```bash
-bun run admin:promote
-```
-
-Si plusieurs profils existent, la commande demande explicitement l’identifiant
-à promouvoir. Le back-office est ensuite disponible sur <http://localhost:3000/admin>.
-
-L’import accepte les EPUB jusqu’à 6 Mo et les couvertures AVIF, JPEG, PNG ou WebP
-jusqu’à 4 Mo. Un livre importé reste non publié tant que sa rendition de lecture
-n’a pas été préparée et validée.
-
-Après confirmation de l’upload, Lyreah vérifie automatiquement la structure de
-l’EPUB, bloque les chemins dangereux et les archives démesurées, puis extrait les
-fichiers de lecture dans `renditions/<book-id>/`. Le statut visible dans le
-back-office passe à `ready` ou `failed` à la fin du traitement. Un import échoué
-peut être relancé en confirmant à nouveau son upload.
-
-Si le navigateur interrompt l’envoi avant sa confirmation, une nouvelle
-soumission avec le même slug remplace automatiquement l’import `pending`
-abandonné par le même administrateur.
-
-## Vérifications
-
-```bash
-bun run lint
-bun run typecheck
-bun run build
-bun run test:e2e:public
-```
-
-La préparation de production est détaillée dans `docs/production-runbook.md` et la recette du catalogue dans `docs/editorial-qa.md`.
+Les textes du catalogue sont issus du domaine public ou de sources compatibles
+dont les crédits sont affichés sur chaque fiche. Les ambiances utilisent des
+sources CC0 ou du domaine public référencées dans le back-office. Le visuel de
+présentation a été créé spécifiquement pour Lyreah avec OpenAI ImageGen.

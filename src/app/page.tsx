@@ -188,6 +188,7 @@ export default function Home() {
                   src={book.cover}
                   alt={`Couverture de ${book.title}`}
                   fill
+                  loading={book.slug === "frankenstein" ? "eager" : "lazy"}
                   sizes="(max-width: 760px) 360px, (max-width: 1180px) 30vw, 340px"
                 />
               </Link>

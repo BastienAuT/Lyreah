@@ -56,7 +56,9 @@ async function CatalogResults({ searchParams }: { searchParams: CatalogSearchPar
 
       {catalogBooks.length > 0 ? (
         <div className="catalog-grid">
-          {catalogBooks.map((book) => <BookCard book={book} key={book.id} />)}
+          {catalogBooks.map((book, index) => (
+            <BookCard book={book} eagerCover={index < 3} key={book.id} />
+          ))}
         </div>
       ) : (
         <div className="catalog-empty">

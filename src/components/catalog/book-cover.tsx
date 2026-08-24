@@ -11,11 +11,13 @@ export function BookCover({
   author,
   slug,
   size = "card",
+  eager = false,
 }: {
   title: string;
   author: string;
   slug: string;
   size?: "card" | "detail";
+  eager?: boolean;
 }) {
   const style = { "--catalog-cover-hue": hueFromSlug(slug) } as CSSProperties;
   const coverPath = getCatalogCoverPath(slug);
@@ -32,6 +34,7 @@ export function BookCover({
           src={coverPath}
           alt={`Couverture de ${title}`}
           fill
+          loading={eager ? "eager" : "lazy"}
           sizes={size === "detail" ? "(max-width: 760px) 100vw, 390px" : "(max-width: 480px) 100vw, (max-width: 760px) 50vw, 30vw"}
         />
       ) : (
